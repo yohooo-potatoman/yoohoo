@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="description" content="A surprise for our first monthsary — made with love, just for you." />
+  <title>Happy First Monthsary, My Baby</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Dancing+Script:wght@400;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Particle canvas -->
+  <canvas id="bgCanvas"></canvas>
+
+  <!-- Subtle grain overlay -->
+  <div class="grain"></div>
+
+  <!-- ═══════════════════════════════════
+       INTRO SCREEN
+  ═══════════════════════════════════ -->
+  <div id="introScreen" role="dialog" aria-modal="true" aria-label="Opening experience">
+
+    <!-- Terminal loading text -->
+    <p id="loadingText" aria-live="polite"></p>
+
+    <!-- Heart reveal -->
+    <div id="heartContainer" aria-hidden="true">
+      <div class="intro-heart" id="introHeart" role="button" tabindex="0" aria-label="Click the heart to continue">
+        <svg class="heart-svg" viewBox="0 0 100 90" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="hg" cx="44%" cy="32%" r="64%">
+              <stop offset="0%"   stop-color="#c8e08a"/>
+              <stop offset="55%"  stop-color="#7b9e2f"/>
+              <stop offset="100%" stop-color="#425417"/>
+            </radialGradient>
+            <filter id="heartGlow">
+              <feGaussianBlur stdDeviation="2.5" result="blur"/>
+              <feMerge>
+                <feMergeNode in="blur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
+          <path
+            d="M50 88 C10 65 0 42 0 28 C0 12 12 0 26 0 C34 0 42 4 50 12 C58 4 66 0 74 0 C88 0 100 12 100 28 C100 42 90 65 50 88Z"
+            fill="url(#hg)"
+            filter="url(#heartGlow)"
+          />
+        </svg>
+        <div class="heart-text">
+          <p class="ht-top">Happy First Monthsary,</p>
+          <p class="ht-name">My Baby</p>
+          <p class="ht-cta">Click the heart</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════
+       DESKTOP
+  ═══════════════════════════════════ -->
+  <div id="desktop" aria-label="Desktop">
+
+    <!-- Background clouds -->
+    <div class="cloud c1" aria-hidden="true"></div>
+    <div class="cloud c2" aria-hidden="true"></div>
+    <div class="cloud c3" aria-hidden="true"></div>
+    <div class="cloud c4" aria-hidden="true"></div>
+
+    <!-- ─────────────────────────────────
+         WINDOW 1 — MY BABY
+    ───────────────────────────────── -->
+    <section class="win" id="win-baby" data-win="baby" aria-label="My Baby window">
+      <div class="win-bar" data-drag="baby">
+        <div class="win-dots-group">
+          <button class="wd wd-close" data-target="baby" aria-label="Close window" title="Close"></button>
+          <button class="wd wd-min"   data-target="baby" aria-label="Minimize window" title="Minimize"></button>
+        </div>
+        <h2 class="win-label">My Baby</h2>
+        <div class="win-bar-right"></div>
+      </div>
+      <div class="win-body">
+        <div class="letter-win">
+          <p class="lw-date">June 14, 2026</p>
+          <div style="min-height: 200px;">
+            <span class="lw-typed" id="lwTyped"></span><span class="lw-cursor" id="lwCursor">|</span>
+          </div>
+          <div class="lw-footer" id="lwFooter">
+            <hr class="lw-rule" />
+            <p class="lw-sig">Always your annoying man</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────────────
+         WINDOW 2 — OUR MEMORIES
+    ───────────────────────────────── -->
+    <section class="win" id="win-memories" data-win="memories" aria-label="Our Memories window">
+      <div class="win-bar" data-drag="memories">
+        <div class="win-dots-group">
+          <button class="wd wd-close" data-target="memories" aria-label="Close" title="Close"></button>
+          <button class="wd wd-min"   data-target="memories" aria-label="Minimize" title="Minimize"></button>
+        </div>
+        <h2 class="win-label">Our Memories</h2>
+        <div class="win-bar-right"></div>
+      </div>
+      <div class="win-body">
+        <div class="gallery-win">
+          <div class="gal-viewport">
+            <div class="gal-track" id="galTrack">
+
+              <!-- POLAROID 1 -->
+              <div class="pol-slide">
+                <div class="pol-card" role="button" tabindex="0" aria-label="Photo 1, tap to flip">
+                  <figure class="pol-face pol-front polaroid">
+                    <div class="pol-photo g1">
+                      <img class="pol-img" src="assets/images/photo1.jpg" alt="" onerror="this.style.display='none'" onload="this.style.display='block'">
+                      <span class="pol-num">I</span>
+                      <span class="pol-sub">Our First Photo</span>
+                    </div>
+                    <figcaption class="pol-cap">Our first time together</figcaption>
+                    <span class="pol-hint">tap to flip</span>
+                  </figure>
+                  <!-- BACK — edit your message here -->
+                  <div class="pol-face pol-back polaroid">
+                    <p class="pb-msg">The moment I realized I found my future wife.</p>
+                    <span class="pb-date">— March 21, 2026</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- POLAROID 2 -->
+              <div class="pol-slide">
+                <div class="pol-card" role="button" tabindex="0" aria-label="Photo 2, tap to flip">
+                  <figure class="pol-face pol-front polaroid">
+                    <div class="pol-photo g2">
+                      <img class="pol-img" src="assets/images/photo2.jpg" alt="" onerror="this.style.display='none'" onload="this.style.display='block'">
+                      <span class="pol-num">II</span>
+                      <span class="pol-sub">A Sweet Afternoon</span>
+                    </div>
+                    <figcaption class="pol-cap">The day we sang creep together</figcaption>
+                    <span class="pol-hint">tap to flip</span>
+                  </figure>
+                  <div class="pol-face pol-back polaroid">
+                    <div class="karaoke-fx">
+                      <span class="music-note n1">♪</span>
+                      <svg class="mic-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                        <line x1="12" y1="19" x2="12" y2="22"></line>
+                        <line x1="8" y1="22" x2="16" y2="22"></line>
+                      </svg>
+                      <span class="music-note n2">♫</span>
+                      <span class="music-note n3">♪</span>
+                    </div>
+                    <p class="pb-msg">The best moment and my favorite one.</p>
+                    <span class="pb-date">— The best!</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- POLAROID 3 -->
+              <div class="pol-slide">
+                <div class="pol-card" role="button" tabindex="0" aria-label="Photo 3, tap to flip">
+                  <figure class="pol-face pol-front polaroid">
+                    <div class="pol-photo g3">
+                      <img class="pol-img" src="assets/images/photo3.jpg" alt="" onerror="this.style.display='none'" onload="this.style.display='block'">
+                      <span class="pol-num">III</span>
+                      <span class="pol-sub">Night Together</span>
+                    </div>
+                    <figcaption class="pol-cap">Our funniest photo together</figcaption>
+                    <span class="pol-hint">tap to flip</span>
+                  </figure>
+                  <div class="pol-face pol-back polaroid">
+                    <p class="pb-msg">Both are SUPER SIGMA</p>
+                    <span class="pb-date">— GIGA NIGGA!</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- POLAROID 4 -->
+              <div class="pol-slide">
+                <div class="pol-card" role="button" tabindex="0" aria-label="Photo 4, tap to flip">
+                  <figure class="pol-face pol-front polaroid">
+                    <div class="pol-photo g4">
+                      <img class="pol-img" src="assets/images/photo4.jpg" alt="" onerror="this.style.display='none'" onload="this.style.display='block'">
+                      <span class="pol-num">IV</span>
+                      <span class="pol-sub">Our Place</span>
+                    </div>
+                    <figcaption class="pol-cap">Our random selfie</figcaption>
+                    <span class="pol-hint">tap to flip</span>
+                  </figure>
+                  <div class="pol-face pol-back polaroid">
+                    <p class="pb-msg">We always found and picked the funny random filters whenever we took selfies</p>
+                    <span class="pb-date">— Ganernch</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- POLAROID 5 -->
+              <div class="pol-slide">
+                <div class="pol-card" role="button" tabindex="0" aria-label="Photo 5, tap to flip">
+                  <figure class="pol-face pol-front polaroid">
+                    <div class="pol-photo g5">
+                      <img class="pol-img" src="assets/images/photo5.jpg" alt="" onerror="this.style.display='none'" onload="this.style.display='block'">
+                      <span class="pol-num">V</span>
+                      <span class="pol-sub">Just Us</span>
+                    </div>
+                    <figcaption class="pol-cap">Our longest time together</figcaption>
+                    <span class="pol-hint">tap to flip</span>
+                  </figure>
+                  <div class="pol-face pol-back polaroid">
+                    <p class="pb-msg">Definitely one of our best moments, we've been together for almost 2 whole days</p>
+                    <span class="pb-date">— I love you so much</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+          <div class="gal-controls">
+            <button class="gal-arrow" id="galPrev" aria-label="Previous photo">&#8592;</button>
+            <div class="gal-dots" id="galDots" role="tablist"></div>
+            <button class="gal-arrow" id="galNext" aria-label="Next photo">&#8594;</button>
+          </div>
+        </div>
+
+        <!-- Lightbox -->
+        <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Photo enlarged">
+          <button class="lb-close" id="lbClose" aria-label="Close lightbox">&#x2715;</button>
+          <div class="lb-inner" id="lbInner"></div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ─────────────────────────────────
+         FLOATING NAV (not a taskbar)
+    ───────────────────────────────── -->
+    <nav id="floatNav" aria-label="Window navigation">
+      <button class="fn-btn" data-win="baby">My Baby</button>
+      <span class="fn-sep" aria-hidden="true">&middot;</span>
+      <button class="fn-btn" data-win="memories">Memories</button>
+    </nav>
+
+    <!-- ─────────────────────────────────
+         FOREVER EASTER EGG
+    ───────────────────────────────── -->
+    <!-- Floating Pixel Heart -->
+    <div id="easterEggIcon" class="easter-egg-icon pixel-heart" role="button" aria-label="A secret for you">
+      <svg viewBox="0 0 15 15" width="45" height="45">
+        <path fill="#5d7a22" d="M3 1h2v1h1v1h3V2h1V1h2v1h1v1h1v3h-1v2h-1v2h-1v2H9v1H8v1H7v-1H6v-1H5V9H4V7H3V5H2V2h1V1z"/>
+      </svg>
+    </div>
+
+    <!-- The Presentation Modal -->
+    <div id="foreverModal" class="forever-modal" role="dialog" aria-modal="true">
+      
+      <!-- Slideshow Container -->
+      <div id="foreverSlideshow" class="forever-slideshow">
+        <div class="fs-slide active">
+          <img src="assets/images/HAHA1.jpg" alt="Reason 1" class="fs-img" onerror="this.style.display='none'">
+          <p class="fs-text">Reasons why we should be with forever</p>
+        </div>
+        <div class="fs-slide">
+          <img src="assets/images/HAHA2.jpg" alt="Reason 2" class="fs-img" onerror="this.style.display='none'">
+          <p class="fs-text">I'm annoying but I promise I don't cheat and I'M SUPER INLOVE WITH YOU!  </p>
+        </div>
+        <div class="fs-slide">
+          <img src="assets/images/HAHA3.jpg" alt="Reason 3" class="fs-img" onerror="this.style.display='none'">
+          <p class="fs-text">We both have the same FREAKQUENCY </p>
+        </div>
+        <div class="fs-slide">
+          <img src="assets/images/HAHA4.jpg" alt="Reason 4" class="fs-img" onerror="this.style.display='none'">
+          <p class="fs-text">We both love, annoy, and laugh at random things even the stupidiest ones</p>
+        </div>
+        <div class="fs-slide">
+          <img src="assets/images/HAHA5.jpg" alt="Reason 5" class="fs-img" onerror="this.style.display='none'">
+          <p class="fs-text">We literally are perfect and the funniest couple in the world!</p>
+          
+          <!-- Long Press Fingerprint -->
+          <div class="fs-hold-area" id="fsHoldArea">
+            <p class="fs-hold-text">Hold for 5 seconds for a suprise!</p>
+            <div class="fs-hold-btn" id="fsHoldBtn" role="button" tabindex="0" aria-label="Hold to seal fate">
+              <svg class="fs-progress-ring" viewBox="0 0 100 100">
+                <circle class="fs-ring-bg" cx="50" cy="50" r="45"></circle>
+                <circle class="fs-ring-fill" cx="50" cy="50" r="45" id="fsRingFill"></circle>
+              </svg>
+              <img src="assets/images/Fingerprintbtn.jpg" class="fs-fp-icon" alt="Hold" onerror="this.style.display='none'">
+            </div>
+          </div>
+        </div>
+        
+        <div class="fs-controls">
+          <button id="fsNext" class="fs-btn">Next</button>
+        </div>
+      </div>
+
+      <!-- Marriage Certificate Container -->
+      <div id="foreverCertificate" class="forever-cert" style="display: none;">
+        <div class="cert-inner">
+          <button id="fcClose" class="fc-close" aria-label="Close">×</button>
+          <h2 class="cert-title">Certificate of Marriage</h2>
+          <p class="cert-body">
+            YOU'RE MINE FOREVER. This document officially certifies that we are legally, emotionally, and in every universe bound to annoy, love, and care for each other until the end of time.
+          </p>
+          <div class="cert-fingerprints">
+            <!-- Replace with the provided fingerprint image -->
+            <img src="assets/images/fingerprints.png" alt="Our Fingerprints" class="cert-fp-img" onerror="this.style.display='none'" onload="this.style.display='block'">
+          </div>
+          <p class="cert-footer">LOCKED IN FOREVER!.</p>
+        </div>
+      </div>
+
+    </div>
+
+  </div><!-- /desktop -->
+
+  <script src="script.js"></script>
+</body>
+</html>
