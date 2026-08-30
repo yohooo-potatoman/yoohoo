@@ -284,6 +284,13 @@ body {
   overflow: hidden;
 }
 
+#monthsaryLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+  pointer-events: none;
+}
+
 /* ═══════════════════════════════════════════════════════════
    WINDOWS — Base
 ═══════════════════════════════════════════════════════════ */
@@ -1519,6 +1526,15 @@ body {
     min-height: 100dvh;
   }
 
+  #monthsaryLayer {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    max-height: 100dvh;
+    pointer-events: none;
+  }
+
   /* All windows hidden by default on mobile — JS shows them */
   .win {
     display: none;
@@ -1559,6 +1575,32 @@ body {
   .envelope { width: 92vw; height: auto; aspect-ratio: 280/190; }
   .love-letter { width: 88vw; }
   .win-body { padding: 20px 18px; }
+
+  .ms-envelope {
+    transform: scale(0.82);
+    transform-origin: center;
+  }
+
+  .ms-env-card {
+    width: 52px;
+    height: 38px;
+  }
+
+  .ms-env-card::before {
+    border-left-width: 26px;
+    border-right-width: 26px;
+    border-top-width: 18px;
+  }
+
+  .ms-env-seal {
+    font-size: 15px;
+  }
+
+  .ms-env-label {
+    font-size: 7px;
+    letter-spacing: 1px;
+    padding: 2px 5px;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════
