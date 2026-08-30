@@ -291,6 +291,10 @@ body {
   pointer-events: none;
 }
 
+.ms-envelope {
+  pointer-events: auto;
+}
+
 /* ═══════════════════════════════════════════════════════════
    WINDOWS — Base
 ═══════════════════════════════════════════════════════════ */
@@ -1533,6 +1537,10 @@ body {
     height: 100vh;
     max-height: 100dvh;
     pointer-events: none;
+  }
+
+  .ms-envelope {
+    pointer-events: auto;
   }
 
   /* All windows hidden by default on mobile — JS shows them */
