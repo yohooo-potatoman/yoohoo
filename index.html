@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <meta name="description" content="A surprise for our first monthsary — made with love, just for you." />
-  <title>Happy First Monthsary, My Baby</title>
+  <title>Happy Monthsary, My Baby</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Dancing+Script:wght@400;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
@@ -50,7 +50,7 @@
           />
         </svg>
         <div class="heart-text">
-          <p class="ht-top">Happy First Monthsary,</p>
+          <p class="ht-top">Happy Monthsary,</p>
           <p class="ht-name">My Baby</p>
           <p class="ht-cta">Click the heart</p>
         </div>
@@ -73,28 +73,30 @@
     <!-- ─────────────────────────────────
          WINDOW 1 — MY BABY
     ───────────────────────────────── -->
-    <section class="win" id="win-baby" data-win="baby" aria-label="My Baby window">
-      <div class="win-bar" data-drag="baby">
-        <div class="win-dots-group">
-          <button class="wd wd-close" data-target="baby" aria-label="Close window" title="Close"></button>
-          <button class="wd wd-min"   data-target="baby" aria-label="Minimize window" title="Minimize"></button>
-        </div>
-        <h2 class="win-label">My Baby</h2>
-        <div class="win-bar-right"></div>
-      </div>
-      <div class="win-body">
-        <div class="letter-win">
-          <p class="lw-date">June 14, 2026</p>
-          <div style="min-height: 200px;">
-            <span class="lw-typed" id="lwTyped"></span><span class="lw-cursor" id="lwCursor">|</span>
+    <!-- ─────────────────────────────────
+         MONTHSARY ENVELOPES LAYER
+    ───────────────────────────────── -->
+    <div id="monthsaryLayer" aria-label="Monthsary messages"></div>
+
+    <!-- ─────────────────────────────────
+         MONTHSARY LETTER MODAL
+    ───────────────────────────────── -->
+    <div id="monthsaryModal" class="ms-modal" role="dialog" aria-modal="true" aria-label="Monthsary letter">
+      <div class="ms-modal-inner">
+        <button class="ms-close" id="msClose" aria-label="Close">&times;</button>
+        <div class="ms-letter">
+          <p class="ms-ordinal" id="msOrdinal"></p>
+          <p class="lw-date" id="msDate"></p>
+          <div style="min-height:160px;">
+            <span class="lw-typed" id="msTyped"></span><span class="lw-cursor">|</span>
           </div>
-          <div class="lw-footer" id="lwFooter">
-            <hr class="lw-rule" />
+          <div class="lw-footer" id="msFooter" style="display:none;">
+            <hr class="lw-rule">
             <p class="lw-sig">Always your annoying man</p>
           </div>
         </div>
       </div>
-    </section>
+    </div>
 
     <!-- ─────────────────────────────────
          WINDOW 2 — OUR MEMORIES
@@ -242,10 +244,13 @@
          FLOATING NAV (not a taskbar)
     ───────────────────────────────── -->
     <nav id="floatNav" aria-label="Window navigation">
-      <button class="fn-btn" data-win="baby">My Baby</button>
+      <button class="fn-btn" data-win="messages" id="fnMessages">Messages</button>
       <span class="fn-sep" aria-hidden="true">&middot;</span>
       <button class="fn-btn" data-win="memories">Memories</button>
     </nav>
+
+    <!-- Standalone monthsary counter -->
+    <div class="ms-counter" id="msCounter"></div>
 
     <!-- ─────────────────────────────────
          FOREVER EASTER EGG

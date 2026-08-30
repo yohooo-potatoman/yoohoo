@@ -7,26 +7,71 @@
    CONFIG — personalize here before sharing
 ══════════════════════════════════════════════════════════ */
 const CONFIG = {
-  // The welcome message typed in Window 1
-  // Use \n for line breaks
-  message: [
-    "My baby,",
-    "",
-    "For these past few months of knowing you, I never really expected this kind of feeling to happen. I didn\u2019t think one person could change the way I do things the effort I give you, the way my days feel, and how time seems different whenever we\u2019re yapping or just near each other.",
-    "",
-    "Thank you for every laugh, every \u201calulut\u201d moment, and every time you chose to stay even when I annoy you too much. Every single one of those moments has meant a lot to me.",
-    "",
-    "I'm still trying my best to be the best for you, and I hope I can keep making you happy and annoyed.",
-    "",
-    "You literally turned my black and white world into color. I hope you like what I made for you.",
-    "",
-    "Happy first monthsary, to my prettiest baby.",
-    "",
-    "I love you so much."
-  ].join('\n'),
-
-  typeSpeed: 30, // ms per character (lower = faster)
+  typeSpeed: 30,
 };
+
+/* ══════════════════════════════════════════════════════════
+   MONTHSARY MESSAGES
+   ─────────────────────────────────────────────────────
+   To add a new monthsary, copy an object below and add it
+   to the array. The envelope + badge update automatically.
+═════════════════════════════════════════════════════ */
+const MONTHSARY_MESSAGES = [
+  {
+    num: 1,
+    label: 'First Monthsary',
+    date: 'June 14, 2026',
+    letter: [
+      "My baby,",
+      "",
+      "For these past few months of knowing you, I never really expected this kind of feeling to happen. I didn\u2019t think one person could change the way I do things\u2014the effort I give you, the way my days feel, and how time seems different whenever we\u2019re yapping or just near each other.",
+      "",
+      "Thank you for every laugh, every \u201calulut\u201d moment, and every time you chose to stay even when I annoy you too much. Every single one of those moments has meant a lot to me.",
+      "",
+      "I'm still trying my best to be the best for you, and I hope I can keep making you happy and annoyed.",
+      "",
+      "You literally turned my black and white world into color. I hope you like what I made for you.",
+      "",
+      "Happy first monthsary, to my prettiest baby.",
+      "",
+      "I love you so much."
+    ].join('\n')
+  },
+
+   {
+     num: 2,
+     label: 'Second Monthsary',
+     date: 'July 14, 2026',
+     letter: [
+        "My baby,",
+        "",
+        "Can't believe it's already been two months since we met, and yet we're still choosing each other. Even though we always have fights, say hurtful words, and sometimes get to the point where it feels like one of us might leave, we still choose to stay and fix things afterward.",
+        "",
+        "Even this month, I still choose to be the better man for you, to understand you more, and to keep learning how to love you better. I just hope that no matter how many fights or arguments we have, at the end of the day, you and I will still choose to be together.",
+        "",
+        "Happy second monthsary, to my prettiest baby.",
+     ].join('\n')
+   },
+
+   {
+     num: 3,
+     label: 'Third Monthsary',
+     date: 'August 14, 2026',
+     letter: [
+       "My baby,",
+       "",
+       "Yohooo, it's been three months already, and we're still here! Yey! It feels like it's been so long since we first met lol. ",
+       "",
+       "Even this month, and for many more months to come, I'll always continue to love you. I'll keep updating this website I made until the homepage is full of messages from me to you.",
+       "",
+       "I hope you never stop loving me (and being freaky lol) the same way I love you. Also I hope we can continue to grow together, and that we can keep making (and making out) each other happy.",
+        "",
+        "Still the man you met four months ago, and will continue to be the better man that you deserve. Happy third monthsary, to my prettiest baby.",
+     ].join('\n')
+   },
+];
+
+
 
 /* ══════════════════════════════════════════════════════════
    50 LOVE REASONS (no emojis)
@@ -216,6 +261,8 @@ function revealDesktop() {
     setTimeout(() => openWindow(winId, false), WIN_DELAYS[i]);
   });
   updateNavActive(null);
+  // Spawn floating monthsary envelopes
+  setTimeout(initMonthsary, 400);
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -294,7 +341,15 @@ document.querySelectorAll('.win').forEach(win => {
 document.querySelectorAll('.fn-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const winId = btn.dataset.win;
-    const win   = document.getElementById(`win-${winId}`);
+    
+    // Messages button — pulse envelopes instead of opening a window
+    if (winId === 'messages') {
+      pulseEnvelopes();
+      updateNavActive('messages');
+      return;
+    }
+    
+    const win = document.getElementById(`win-${winId}`);
     if (!win || !win.classList.contains('open') || win.style.display === 'none') {
       openWindow(winId);
     } else if (win.classList.contains('focused')) {
@@ -373,39 +428,132 @@ document.querySelectorAll('[data-drag]').forEach(bar => {
 });
 
 /* ══════════════════════════════════════════════════════════
-   WIN 1 — TYPING ANIMATION
+   WIN 1 — TYPING ANIMATION (for monthsary modal)
 ══════════════════════════════════════════════════════════ */
 let typingStarted = false;
+let typingTimer   = null;
 
-function startTyping() {
+function startTyping(text, targetElId, footerId) {
+  if (typingTimer) clearInterval(typingTimer);
   typingStarted = true;
-  const el     = document.getElementById('lwTyped');
-  const cursor = document.getElementById('lwCursor');
-  const footer = document.getElementById('lwFooter');
-  const msg    = CONFIG.message;
+  const el     = document.getElementById(targetElId);
+  const footer = document.getElementById(footerId);
   let idx      = 0;
 
   el.textContent = '';
-  cursor.style.display = 'inline';
-  footer.classList.remove('visible');
+  if (footer) footer.style.display = 'none';
 
-  function typeNext() {
-    if (idx < msg.length) {
-      el.textContent += msg[idx];
-      idx++;
-      const body = el.closest('.win-body');
-      if (body) body.scrollTop = body.scrollHeight;
-      const delay = CONFIG.typeSpeed + (msg[idx - 1] === '\n' ? 160 : 0);
-      setTimeout(typeNext, delay);
+  typingTimer = setInterval(() => {
+    if (idx < text.length) {
+      el.textContent += text[idx++];
     } else {
-      // Done — show footer
-      setTimeout(() => {
-        footer.classList.add('visible');
-      }, 600);
+      clearInterval(typingTimer);
+      if (footer) {
+        setTimeout(() => {
+          footer.style.display = '';
+          footer.classList.add('visible');
+        }, 500);
+      }
     }
-  }
-  typeNext();
+  }, 30);
 }
+
+/* ══════════════════════════════════════════════════════════
+   MONTHSARY ENVELOPE SYSTEM
+══════════════════════════════════════════════════════════ */
+const MS_SEALS = ['\u2665', '\u2661', '\u2764'];
+
+function ordinalSuffix(n) {
+  const s = ['th','st','nd','rd'];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+function initMonthsary() {
+  const layer   = document.getElementById('monthsaryLayer');
+  const counter = document.getElementById('msCounter');
+  if (!layer) return;
+
+  // Update standalone counter pill
+  if (counter) {
+    const n = MONTHSARY_MESSAGES.length;
+    counter.textContent = n === 1 ? '1 monthsary' : `${n} monthsaries`;
+    setTimeout(() => counter.classList.add('visible'), 800);
+  }
+
+  // Floating positions: spread envelopes around the desktop
+  const positions = [
+    { x0:'5vw',  y0:'18vh', x1:'8vw',  y1:'22vh', x2:'4vw',  y2:'20vh', x3:'7vw',  y3:'16vh', dur:'22s', delay:'0s'    },
+    { x0:'75vw', y0:'12vh', x1:'78vw', y1:'15vh', x2:'74vw', y2:'14vh', x3:'76vw', y3:'11vh', dur:'26s', delay:'3s'   },
+    { x0:'40vw', y0:'60vh', x1:'43vw', y1:'64vh', x2:'39vw', y2:'62vh', x3:'42vw', y3:'59vh', dur:'19s', delay:'7s'   },
+    { x0:'15vw', y0:'70vh', x1:'18vw', y1:'73vh', x2:'14vw', y2:'71vh', x3:'17vw', y3:'68vh', dur:'24s', delay:'11s'  },
+    { x0:'82vw', y0:'65vh', x1:'85vw', y1:'68vh', x2:'81vw', y2:'66vh', x3:'84vw', y3:'63vh', dur:'28s', delay:'5s'   },
+  ];
+
+  MONTHSARY_MESSAGES.forEach((msg, i) => {
+    const pos   = positions[i % positions.length];
+    const env   = document.createElement('div');
+    env.className = 'ms-envelope';
+    env.setAttribute('role', 'button');
+    env.setAttribute('tabindex', '0');
+    env.setAttribute('aria-label', `Open ${msg.label}`);
+    env.style.cssText = [
+      `--x0:${pos.x0}`, `--y0:${pos.y0}`,
+      `--x1:${pos.x1}`, `--y1:${pos.y1}`,
+      `--x2:${pos.x2}`, `--y2:${pos.y2}`,
+      `--x3:${pos.x3}`, `--y3:${pos.y3}`,
+      `--dur:${pos.dur}`, `--delay:${pos.delay}`,
+    ].join(';');
+    env.innerHTML = `
+      <div class="ms-env-card">
+        <span class="ms-env-seal">${MS_SEALS[i % MS_SEALS.length]}</span>
+      </div>
+      <span class="ms-env-label">${ordinalSuffix(msg.num)}</span>
+    `;
+    env.addEventListener('click', () => openMonthsaryLetter(i));
+    env.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openMonthsaryLetter(i); }
+    });
+    layer.appendChild(env);
+  });
+}
+
+function openMonthsaryLetter(idx) {
+  const msg    = MONTHSARY_MESSAGES[idx];
+  const modal  = document.getElementById('monthsaryModal');
+  const ordEl  = document.getElementById('msOrdinal');
+  const dateEl = document.getElementById('msDate');
+  
+  ordEl.textContent  = msg.label;
+  dateEl.textContent = msg.date;
+
+  modal.style.display = '';
+  void modal.offsetWidth;
+  modal.classList.add('open');
+
+  // Start typing the letter
+  startTyping(msg.letter, 'msTyped', 'msFooter');
+  spawnBurst(modal);
+}
+
+function pulseEnvelopes() {
+  document.querySelectorAll('.ms-envelope').forEach(env => {
+    env.style.animation = 'none';
+    void env.offsetWidth;
+    env.style.animation = '';
+    env.style.filter = 'drop-shadow(0 0 12px rgba(186, 142, 161, 0.9))';
+    setTimeout(() => { env.style.filter = ''; }, 1200);
+  });
+}
+
+// Monthsary modal close
+document.getElementById('msClose')?.addEventListener('click', () => {
+  const modal = document.getElementById('monthsaryModal');
+  modal.classList.remove('open');
+  setTimeout(() => { modal.style.display = 'none'; }, 450);
+  if (typingTimer) { clearInterval(typingTimer); typingTimer = null; }
+});
+
 
 /* ══════════════════════════════════════════════════════════
    WIN 2 — GALLERY
@@ -443,7 +591,10 @@ function initGallery() {
       card.classList.toggle('flipped');
       
       if (isFlippingOpen) {
-        if (idx === 0) spawnFireworks(card);
+        if      (idx === 0) spawnFireworks(card);
+        else if (idx === 2) spawnSigmaEffect(card);
+        else if (idx === 3) spawnPawsEffect(card);
+        else if (idx === 4) spawnHeartsEffect(card);
         else spawnBurst(card);
       }
     }
@@ -629,7 +780,14 @@ function sealOurFate() {
   foreverSlideshow.style.display = 'none';
   foreverCertificate.style.display = 'block';
   setTimeout(() => foreverCertificate.classList.add('active'), 50);
-  spawnBurst(foreverModal);
+  // Big fireworks celebration for the certificate
+  for (let j = 0; j < 8; j++) {
+    setTimeout(() => {
+      const cx = Math.random() * window.innerWidth * 0.8 + window.innerWidth * 0.1;
+      const cy = Math.random() * window.innerHeight * 0.7 + window.innerHeight * 0.1;
+      createFireworkBurst(cx, cy);
+    }, j * 250);
+  }
 }
 
 function updateRing() {
@@ -700,4 +858,101 @@ if (easterEggIcon && foreverModal) {
 /* ══════════════════════════════════════════════════════════
    CLOCK (taskbar removed, keep for optional use)
 ══════════════════════════════════════════════════════════ */
-// (No taskbar clock in this redesign — removed as requested)
+  // (No taskbar clock in this redesign — removed as requested)
+
+/* ══════════════════════════════════════════════════════════
+   POLAROID SPECIAL EFFECTS
+══════════════════════════════════════════════════════════ */
+
+// ─ Polaroid 3: Sigma / GIGACHAD ──────────────────────────
+function spawnSigmaEffect(originEl) {
+  const rect   = originEl.getBoundingClientRect();
+  const cx     = rect.left + rect.width / 2;
+  const cy     = rect.top  + rect.height / 2;
+  const glyphs = ['\u03A3', '\u26A1', '\u{1F4AA}', 'CHAD', '\u{1F608}', '\u26A1', '\u03A3'];
+
+  glyphs.forEach((g, i) => {
+    setTimeout(() => {
+      const el  = document.createElement('div');
+      const ang = (i / glyphs.length) * Math.PI * 2;
+      const dx  = Math.cos(ang) * (80 + Math.random() * 60);
+      const dy  = Math.sin(ang) * (80 + Math.random() * 60) - 30;
+      el.textContent = g;
+      el.style.cssText = `
+        position: fixed;
+        left: ${cx}px; top: ${cy}px;
+        font-size: ${g.length > 2 ? 16 : 28}px;
+        font-weight: 900;
+        color: #c0c0c0;
+        text-shadow: 0 0 8px rgba(180,180,180,0.8);
+        pointer-events: none;
+        z-index: 9999;
+        white-space: nowrap;
+        --dx: ${dx}px; --dy: ${dy}px;
+        animation: fireworkExplode 1.4s cubic-bezier(0.25,1,0.5,1) forwards;
+      `;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 1500);
+    }, i * 80);
+  });
+}
+
+// ─ Polaroid 4: Dogs & Cats ───────────────────────────
+function spawnPawsEffect(originEl) {
+  const rect   = originEl.getBoundingClientRect();
+  const cx     = rect.left + rect.width / 2;
+  const cy     = rect.top  + rect.height / 2;
+  const glyphs = ['\u{1F436}', '\u{1F431}', '\uD83D\uDC3E', '\u{1F436}', '\u{1F431}', '\uD83D\uDC3E', '\u{1F436}', '\u{1F431}'];
+
+  glyphs.forEach((g, i) => {
+    setTimeout(() => {
+      const el  = document.createElement('div');
+      const ang = (i / glyphs.length) * Math.PI * 2;
+      const dx  = Math.cos(ang) * (100 + Math.random() * 70);
+      const dy  = Math.sin(ang) * (100 + Math.random() * 70) - 40;
+      el.textContent = g;
+      el.style.cssText = `
+        position: fixed;
+        left: ${cx}px; top: ${cy}px;
+        font-size: 30px;
+        pointer-events: none;
+        z-index: 9999;
+        --dx: ${dx}px; --dy: ${dy}px;
+        animation: fireworkExplode 1.4s cubic-bezier(0.25,1,0.5,1) forwards;
+      `;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 1500);
+    }, i * 70);
+  });
+}
+
+// ─ Polaroid 5: Floating Hearts ────────────────────────
+function spawnHeartsEffect(originEl) {
+  const rect   = originEl.getBoundingClientRect();
+  const cx     = rect.left + rect.width / 2;
+  const cy     = rect.top  + rect.height / 2;
+  const hearts = ['\u2764\uFE0F', '\uD83E\uDD0D', '\uD83D\uDC95', '\u2665', '\u2764\uFE0F', '\uD83D\uDC9E', '\u2665', '\uD83D\uDC95', '\u2764\uFE0F', '\uD83E\uDD0D'];
+
+  hearts.forEach((h, i) => {
+    setTimeout(() => {
+      const el   = document.createElement('div');
+      const ang  = (i / hearts.length) * Math.PI * 2;
+      const dist = 80 + Math.random() * 90;
+      const dx   = Math.cos(ang) * dist;
+      const dy   = Math.sin(ang) * dist - 50;
+      const size = 22 + Math.random() * 16;
+      el.textContent = h;
+      el.style.cssText = `
+        position: fixed;
+        left: ${cx}px; top: ${cy}px;
+        font-size: ${size}px;
+        pointer-events: none;
+        z-index: 9999;
+        --dx: ${dx}px; --dy: ${dy}px;
+        animation: fireworkExplode 1.6s cubic-bezier(0.25,1,0.5,1) forwards;
+      `;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 1700);
+    }, i * 60);
+  });
+}
