@@ -2,9 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-  <meta name="description" content="A surprise for our first monthsary — made with love, just for you." />
+  <!-- Allow user zoom — maximum-scale=1 breaks accessibility -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="A romantic surprise website — Happy Monthsary, my baby. Made with love, just for you." />
   <title>Happy Monthsary, My Baby</title>
+
+  <!-- Open Graph (link preview when shared) -->
+  <meta property="og:title"       content="Happy Monthsary, My Baby 💚" />
+  <meta property="og:description" content="A little something made with love, just for you." />
+  <meta property="og:type"        content="website" />
+  <meta property="og:image"       content="assets/images/photo1.jpg" />
+
+  <!-- Favicon (uses existing image) -->
+  <link rel="icon" type="image/jpeg" href="assets/images/photo1.jpg" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Dancing+Script:wght@400;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
@@ -22,31 +33,20 @@
   ═══════════════════════════════════ -->
   <div id="introScreen" role="dialog" aria-modal="true" aria-label="Opening experience">
 
-    <!-- Terminal loading text -->
-    <p id="loadingText" aria-live="polite"></p>
-
     <!-- Heart reveal -->
-    <div id="heartContainer" aria-hidden="true">
+    <div id="heartContainer">
       <div class="intro-heart" id="introHeart" role="button" tabindex="0" aria-label="Click the heart to continue">
-        <svg class="heart-svg" viewBox="0 0 100 90" xmlns="http://www.w3.org/2000/svg">
+        <svg class="heart-svg" viewBox="-15 -12 130 112" xmlns="http://www.w3.org/2000/svg">
           <defs>
-            <radialGradient id="hg" cx="44%" cy="32%" r="64%">
-              <stop offset="0%"   stop-color="#c8e08a"/>
+            <radialGradient id="hg" cx="50%" cy="40%" r="60%">
+              <stop offset="0%"   stop-color="#d4ed85"/>
               <stop offset="55%"  stop-color="#7b9e2f"/>
-              <stop offset="100%" stop-color="#425417"/>
+              <stop offset="100%" stop-color="#3d4e15"/>
             </radialGradient>
-            <filter id="heartGlow">
-              <feGaussianBlur stdDeviation="2.5" result="blur"/>
-              <feMerge>
-                <feMergeNode in="blur"/>
-                <feMergeNode in="SourceGraphic"/>
-              </feMerge>
-            </filter>
           </defs>
           <path
             d="M50 88 C10 65 0 42 0 28 C0 12 12 0 26 0 C34 0 42 4 50 12 C58 4 66 0 74 0 C88 0 100 12 100 28 C100 42 90 65 50 88Z"
             fill="url(#hg)"
-            filter="url(#heartGlow)"
           />
         </svg>
         <div class="heart-text">
@@ -120,7 +120,7 @@
                 <div class="pol-card" role="button" tabindex="0" aria-label="Photo 1, tap to flip">
                   <figure class="pol-face pol-front polaroid">
                     <div class="pol-photo g1">
-                      <img class="pol-img" src="assets/images/photo1.jpg" alt="" onerror="this.style.display='none'" onload="this.style.display='block'">
+                      <img class="pol-img" src="assets/images/photo1.jpg" alt="Our first photo together" loading="lazy" onerror="this.style.display='none'" onload="this.style.display='block'">
                       <span class="pol-num">I</span>
                       <span class="pol-sub">Our First Photo</span>
                     </div>
@@ -140,7 +140,7 @@
                 <div class="pol-card" role="button" tabindex="0" aria-label="Photo 2, tap to flip">
                   <figure class="pol-face pol-front polaroid">
                     <div class="pol-photo g2">
-                      <img class="pol-img" src="assets/images/photo2.jpg" alt="" onerror="this.style.display='none'" onload="this.style.display='block'">
+                      <img class="pol-img" src="assets/images/photo2.jpg" alt="A memory of us" loading="lazy" onerror="this.style.display='none'" onload="this.style.display='block'">
                       <span class="pol-num">II</span>
                       <span class="pol-sub">A Sweet Afternoon</span>
                     </div>
@@ -170,7 +170,7 @@
                 <div class="pol-card" role="button" tabindex="0" aria-label="Photo 3, tap to flip">
                   <figure class="pol-face pol-front polaroid">
                     <div class="pol-photo g3">
-                      <img class="pol-img" src="assets/images/photo3.jpg" alt="" onerror="this.style.display='none'" onload="this.style.display='block'">
+                      <img class="pol-img" src="assets/images/photo3.jpg" alt="Another memory of us" loading="lazy" onerror="this.style.display='none'" onload="this.style.display='block'">
                       <span class="pol-num">III</span>
                       <span class="pol-sub">Night Together</span>
                     </div>
@@ -189,7 +189,7 @@
                 <div class="pol-card" role="button" tabindex="0" aria-label="Photo 4, tap to flip">
                   <figure class="pol-face pol-front polaroid">
                     <div class="pol-photo g4">
-                      <img class="pol-img" src="assets/images/photo4.jpg" alt="" onerror="this.style.display='none'" onload="this.style.display='block'">
+                      <img class="pol-img" src="assets/images/photo4.jpg" alt="Us together" loading="lazy" onerror="this.style.display='none'" onload="this.style.display='block'">
                       <span class="pol-num">IV</span>
                       <span class="pol-sub">Our Place</span>
                     </div>
@@ -208,7 +208,7 @@
                 <div class="pol-card" role="button" tabindex="0" aria-label="Photo 5, tap to flip">
                   <figure class="pol-face pol-front polaroid">
                     <div class="pol-photo g5">
-                      <img class="pol-img" src="assets/images/photo5.jpg" alt="" onerror="this.style.display='none'" onload="this.style.display='block'">
+                      <img class="pol-img" src="assets/images/photo5.jpg" alt="Our favorite moment" loading="lazy" onerror="this.style.display='none'" onload="this.style.display='block'">
                       <span class="pol-num">V</span>
                       <span class="pol-sub">Just Us</span>
                     </div>
@@ -241,11 +241,26 @@
 
 
     <!-- ─────────────────────────────────
+         WALKING TO MONTHSARY COUNTDOWN
+    ───────────────────────────────── -->
+    <div id="monthsaryWalk" class="mw-container" aria-label="Walking to Monthsary countdown">
+      <div class="mw-bubble" id="mwLabel">1 day until our 4th monthsary...</div>
+      <div class="mw-track-area" id="mwTrackArea" role="button" tabindex="0" title="Click to celebrate!">
+        <div class="mw-track"></div>
+        <div class="mw-char mw-me" id="mwMe" title="Him">
+          <img src="assets/images/me-walk.png" alt="Him" class="mw-img" onerror="this.outerHTML='<span class=\'mw-fallback\'>👦</span>'" />
+        </div>
+        <div class="mw-char mw-her" id="mwHer" title="Her">
+          <img src="assets/images/her-walk.png" alt="Her" class="mw-img" onerror="this.outerHTML='<span class=\'mw-fallback\'>👧</span>'" />
+        </div>
+        <div class="mw-heart" id="mwHeart" aria-hidden="true">💖</div>
+      </div>
+    </div>
+
+    <!-- ─────────────────────────────────
          FLOATING NAV (not a taskbar)
     ───────────────────────────────── -->
     <nav id="floatNav" aria-label="Window navigation">
-      <button class="fn-btn" data-win="messages" id="fnMessages">Messages</button>
-      <span class="fn-sep" aria-hidden="true">&middot;</span>
       <button class="fn-btn" data-win="memories">Memories</button>
     </nav>
 
@@ -268,23 +283,23 @@
       <!-- Slideshow Container -->
       <div id="foreverSlideshow" class="forever-slideshow">
         <div class="fs-slide active">
-          <img src="assets/images/HAHA1.jpg" alt="Reason 1" class="fs-img" onerror="this.style.display='none'">
+          <img src="assets/images/HAHA1.jpg" alt="Reason 1" class="fs-img" loading="lazy" onerror="this.style.display='none'">
           <p class="fs-text">Reasons why we should be with forever</p>
         </div>
         <div class="fs-slide">
-          <img src="assets/images/HAHA2.jpg" alt="Reason 2" class="fs-img" onerror="this.style.display='none'">
+          <img src="assets/images/HAHA2.jpg" alt="Reason 2" class="fs-img" loading="lazy" onerror="this.style.display='none'">
           <p class="fs-text">I'm annoying but I promise I don't cheat and I'M SUPER INLOVE WITH YOU!  </p>
         </div>
         <div class="fs-slide">
-          <img src="assets/images/HAHA3.jpg" alt="Reason 3" class="fs-img" onerror="this.style.display='none'">
+          <img src="assets/images/HAHA3.jpg" alt="Reason 3" class="fs-img" loading="lazy" onerror="this.style.display='none'">
           <p class="fs-text">We both have the same FREAKQUENCY </p>
         </div>
         <div class="fs-slide">
-          <img src="assets/images/HAHA4.jpg" alt="Reason 4" class="fs-img" onerror="this.style.display='none'">
+          <img src="assets/images/HAHA4.jpg" alt="Reason 4" class="fs-img" loading="lazy" onerror="this.style.display='none'">
           <p class="fs-text">We both love, annoy, and laugh at random things even the stupidiest ones</p>
         </div>
         <div class="fs-slide">
-          <img src="assets/images/HAHA5.jpg" alt="Reason 5" class="fs-img" onerror="this.style.display='none'">
+          <img src="assets/images/HAHA5.jpg" alt="Reason 5" class="fs-img" loading="lazy" onerror="this.style.display='none'">
           <p class="fs-text">We literally are perfect and the funniest couple in the world!</p>
           
           <!-- Long Press Fingerprint -->
@@ -295,7 +310,7 @@
                 <circle class="fs-ring-bg" cx="50" cy="50" r="45"></circle>
                 <circle class="fs-ring-fill" cx="50" cy="50" r="45" id="fsRingFill"></circle>
               </svg>
-              <img src="assets/images/Fingerprintbtn.jpg" class="fs-fp-icon" alt="Hold" onerror="this.style.display='none'">
+              <img src="assets/images/Fingerprintbtn.jpg" class="fs-fp-icon" alt="Hold" loading="lazy" onerror="this.style.display='none'">
             </div>
           </div>
         </div>
@@ -315,7 +330,7 @@
           </p>
           <div class="cert-fingerprints">
             <!-- Replace with the provided fingerprint image -->
-            <img src="assets/images/fingerprints.png" alt="Our Fingerprints" class="cert-fp-img" onerror="this.style.display='none'" onload="this.style.display='block'">
+            <img src="assets/images/fingerprints.png" alt="Our Fingerprints" class="cert-fp-img" loading="lazy" onerror="this.style.display='none'" onload="this.style.display='block'">
           </div>
           <p class="cert-footer">LOCKED IN FOREVER!.</p>
         </div>
@@ -328,3 +343,4 @@
   <script src="script.js"></script>
 </body>
 </html>
+

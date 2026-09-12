@@ -1,0 +1,28 @@
+{
+  "name": "for-my-baby",
+  "version": "1.0.0",
+  "description": "",
+  "main": "script.js",
+  "scripts": {
+    "build": "node build.js",
+    "test": "echo no tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yohooo-potatoman/yoohoo.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/yohooo-potatoman/yoohoo/issues"
+  },
+  "homepage": "https://github.com/yohooo-potatoman/yoohoo#readme",
+  "devDependencies": {
+    "clean-css-cli": "^5.6.3",
+    "copyfiles": "^2.4.1",
+    "html-minifier-terser": "^7.2.0",
+    "javascript-obfuscator": "^5.6.0",
+    "terser": "^5.51.2"
+  }
+}

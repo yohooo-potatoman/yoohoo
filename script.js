@@ -130,7 +130,13 @@ const REASONS = [
 ];
 
 /* ══════════════════════════════════════════════════════════
+   REDUCED MOTION — skip all animations if user prefers
+══════════════════════════════════════════════════════════ */
+const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ══════════════════════════════════════════════════════════
    PARTICLE SYSTEM (Canvas)
+   Throttled on low-end devices (≤4 logical cores → 25 particles)
 ══════════════════════════════════════════════════════════ */
 const canvas = document.getElementById('bgCanvas');
 const ctx    = canvas.getContext('2d');
@@ -145,7 +151,12 @@ resizeCanvas();
 window.addEventListener('resize', () => {
   resizeCanvas();
   repositionWindowsMobile();
+  initMonthsary();
+  if (typeof initMonthsaryWalk === 'function') initMonthsaryWalk();
 });
+
+const PARTICLE_COUNT = REDUCED_MOTION ? 0
+  : (navigator.hardwareConcurrency <= 4 ? 25 : 55);
 
 class Particle {
   constructor(init = false) {
@@ -180,9 +191,10 @@ class Particle {
   }
 }
 
-for (let i = 0; i < 55; i++) particles.push(new Particle(true));
+for (let i = 0; i < PARTICLE_COUNT; i++) particles.push(new Particle(true));
 
 function animateCanvas() {
+  if (PARTICLE_COUNT === 0) return; // skip entirely if no particles
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   particles.forEach(p => { p.update(); p.draw(); });
   requestAnimationFrame(animateCanvas);
@@ -192,40 +204,11 @@ animateCanvas();
 /* ══════════════════════════════════════════════════════════
    INTRO SEQUENCE
 ══════════════════════════════════════════════════════════ */
-const introScreen   = document.getElementById('introScreen');
-const loadingText   = document.getElementById('loadingText');
+const introScreen    = document.getElementById('introScreen');
 const heartContainer = document.getElementById('heartContainer');
-const introHeart    = document.getElementById('introHeart');
+const introHeart     = document.getElementById('introHeart');
 
 let introComplete = false;
-
-function runIntro() {
-  // Phase 1: Type "Loading..."
-  const loadStr = 'Loading\u2026';
-  let charIdx = 0;
-
-  setTimeout(() => {
-    const typeInterval = setInterval(() => {
-      if (charIdx < loadStr.length) {
-        loadingText.textContent += loadStr[charIdx++];
-      } else {
-        clearInterval(typeInterval);
-
-        // Phase 2: Pause, then fade loading text
-        setTimeout(() => {
-          loadingText.classList.add('fade');
-
-          // Phase 3: Transition screen background, reveal heart
-          setTimeout(() => {
-            introScreen.classList.add('revealing');
-            heartContainer.classList.add('visible');
-          }, 520);
-
-        }, 750);
-      }
-    }, 85);
-  }, 650);
-}
 
 function handleHeartClick() {
   if (introComplete) return;
@@ -248,12 +231,11 @@ introHeart.addEventListener('keydown', e => {
 });
 introHeart.addEventListener('touchend', e => { e.preventDefault(); handleHeartClick(); });
 
-runIntro();
-
 /* ══════════════════════════════════════════════════════════
    DESKTOP REVEAL — staggered window entrance
 ══════════════════════════════════════════════════════════ */
-const WIN_ORDER = [];
+/* ── Windows to auto-open after intro (empty = open only when clicked) ── */
+const WIN_ORDER  = [];
 const WIN_DELAYS = [];
 
 function revealDesktop() {
@@ -261,8 +243,9 @@ function revealDesktop() {
     setTimeout(() => openWindow(winId, false), WIN_DELAYS[i]);
   });
   updateNavActive(null);
-  // Spawn floating monthsary envelopes
+  // Spawn floating monthsary envelopes & walking countdown
   setTimeout(initMonthsary, 400);
+  setTimeout(initMonthsaryWalk, 600);
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -287,8 +270,6 @@ function openWindow(winId, focus = true) {
   if (focus) focusWindow(win);
   updateNavActive(winId);
 
-  // Special init
-  if (winId === 'baby'     && !typingStarted) startTyping();
   if (winId === 'memories' && !galleryInited) initGallery();
 }
 
@@ -341,15 +322,7 @@ document.querySelectorAll('.win').forEach(win => {
 document.querySelectorAll('.fn-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const winId = btn.dataset.win;
-    
-    // Messages button — pulse envelopes instead of opening a window
-    if (winId === 'messages') {
-      pulseEnvelopes();
-      updateNavActive('messages');
-      return;
-    }
-    
-    const win = document.getElementById(`win-${winId}`);
+    const win   = document.getElementById(`win-${winId}`);
     if (!win || !win.classList.contains('open') || win.style.display === 'none') {
       openWindow(winId);
     } else if (win.classList.contains('focused')) {
@@ -474,6 +447,9 @@ function initMonthsary() {
   const counter = document.getElementById('msCounter');
   if (!layer) return;
 
+  // Clear existing envelopes to avoid duplicates on resize
+  layer.innerHTML = '';
+
   // Update standalone counter pill
   if (counter) {
     const n = MONTHSARY_MESSAGES.length;
@@ -481,29 +457,35 @@ function initMonthsary() {
     setTimeout(() => counter.classList.add('visible'), 800);
   }
 
-  // Floating positions: spread envelopes around the desktop
-  const positions = [
-    { x0:'5vw',  y0:'18vh', x1:'8vw',  y1:'22vh', x2:'4vw',  y2:'20vh', x3:'7vw',  y3:'16vh', dur:'22s', delay:'0s'    },
-    { x0:'75vw', y0:'12vh', x1:'78vw', y1:'15vh', x2:'74vw', y2:'14vh', x3:'76vw', y3:'11vh', dur:'26s', delay:'3s'   },
-    { x0:'40vw', y0:'60vh', x1:'43vw', y1:'64vh', x2:'39vw', y2:'62vh', x3:'42vw', y3:'59vh', dur:'19s', delay:'7s'   },
-    { x0:'15vw', y0:'70vh', x1:'18vw', y1:'73vh', x2:'14vw', y2:'71vh', x3:'17vw', y3:'68vh', dur:'24s', delay:'11s'  },
-    { x0:'82vw', y0:'65vh', x1:'85vw', y1:'68vh', x2:'81vw', y2:'66vh', x3:'84vw', y3:'63vh', dur:'28s', delay:'5s'   },
+  // Safe percentage coordinates (tested for mobile 320px to wide desktop 4K)
+  // Keeps all envelopes within safe visible zones far away from edges and the bottom walk bar
+  const isMobile = window.innerWidth <= 700;
+  const positions = isMobile ? [
+    { left: '10%', top: '16%', dur: '6s',   delay: '0s' },
+    { left: '64%', top: '14%', dur: '6.8s', delay: '-2s' },
+    { left: '38%', top: '34%', dur: '6.2s', delay: '-3.5s' },
+    { left: '12%', top: '48%', dur: '7.2s', delay: '-1s' },
+    { left: '62%', top: '50%', dur: '6.5s', delay: '-4s' },
+  ] : [
+    { left: '8%',  top: '18%', dur: '7s',   delay: '0s' },
+    { left: '74%', top: '14%', dur: '7.5s', delay: '-2.5s' },
+    { left: '42%', top: '36%', dur: '6.8s', delay: '-4s' },
+    { left: '14%', top: '54%', dur: '8s',   delay: '-1.5s' },
+    { left: '72%', top: '52%', dur: '7.2s', delay: '-3.5s' },
   ];
 
   MONTHSARY_MESSAGES.forEach((msg, i) => {
-    const pos   = positions[i % positions.length];
-    const env   = document.createElement('div');
+    const pos = positions[i % positions.length];
+    const env = document.createElement('div');
     env.className = 'ms-envelope';
     env.setAttribute('role', 'button');
     env.setAttribute('tabindex', '0');
     env.setAttribute('aria-label', `Open ${msg.label}`);
-    env.style.cssText = [
-      `--x0:${pos.x0}`, `--y0:${pos.y0}`,
-      `--x1:${pos.x1}`, `--y1:${pos.y1}`,
-      `--x2:${pos.x2}`, `--y2:${pos.y2}`,
-      `--x3:${pos.x3}`, `--y3:${pos.y3}`,
-      `--dur:${pos.dur}`, `--delay:${pos.delay}`,
-    ].join(';');
+    env.style.left = pos.left;
+    env.style.top  = pos.top;
+    env.style.animationDuration = pos.dur;
+    env.style.animationDelay    = pos.delay;
+
     env.innerHTML = `
       <div class="ms-env-card">
         <span class="ms-env-seal">${MS_SEALS[i % MS_SEALS.length]}</span>
@@ -646,9 +628,11 @@ function spawnFloatingReason() {
   }, dur * 1000 + 500);
 }
 
-// Spawn first one soon, then every 8 seconds
-setTimeout(spawnFloatingReason, 3000);
-setInterval(spawnFloatingReason, 8000);
+// Spawn first one soon, then every 8 seconds — only if motion is OK
+if (!REDUCED_MOTION) {
+  setTimeout(spawnFloatingReason, 3000);
+  setInterval(spawnFloatingReason, 8000);
+}
 
 /* (Open Me window removed — envelope logic no longer needed) */
 
@@ -955,4 +939,199 @@ function spawnHeartsEffect(originEl) {
       setTimeout(() => el.remove(), 1700);
     }, i * 60);
   });
+}
+
+/* ══════════════════════════════════════════════════════════
+   WALKING MONTHSARY COUNTDOWN
+══════════════════════════════════════════════════════════ */
+
+// ── 1. Manila Time & Date Calculations ────────────────────
+function getManilaNow() {
+  const now = new Date();
+  // Asia/Manila is UTC+8
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  return new Date(utc + (3600000 * 8));
+}
+
+function getNextMonthsaryDate() {
+  const now = getManilaNow();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const day = now.getDate();
+
+  let targetYear = year;
+  let targetMonth = month;
+
+  // If today is past the 14th, the next monthsary is the 14th of next month
+  if (day > 14) {
+    targetMonth++;
+    if (targetMonth > 11) {
+      targetMonth = 0;
+      targetYear++;
+    }
+  }
+
+  // Returns UTC date corresponding to Manila midnight of the 14th
+  return new Date(Date.UTC(targetYear, targetMonth, 14, 0, 0, 0));
+}
+
+function getDaysUntilNext() {
+  const now = getManilaNow();
+  const todayMidnight = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0));
+  const nextTarget = getNextMonthsaryDate();
+  return Math.round((nextTarget - todayMidnight) / 86400000);
+}
+
+function getNextMonthsaryNumber() {
+  const target = getNextMonthsaryDate();
+  const targetYear = target.getUTCFullYear();
+  const targetMonth = target.getUTCMonth(); // 0 = Jan, 5 = June
+  // Month 1 was June 14, 2026 (year: 2026, month: 5)
+  return (targetYear - 2026) * 12 + (targetMonth - 5) + 1;
+}
+
+// ── 2. Fallback Generic Monthsary Letter ───────────────────
+function triggerGenericMonthsaryLetter(num, dateStr) {
+  const modal  = document.getElementById('monthsaryModal');
+  const ordEl  = document.getElementById('msOrdinal');
+  const dateEl = document.getElementById('msDate');
+  if (!modal || !ordEl || !dateEl) return;
+
+  ordEl.textContent  = `Happy ${ordinalSuffix(num)} Monthsary!`;
+  dateEl.textContent = dateStr;
+
+  modal.style.display = '';
+  void modal.offsetWidth;
+  modal.classList.add('open');
+
+  const fallbackLetter = [
+    "My baby,",
+    "",
+    `Happy ${ordinalSuffix(num)} monthsary to us! ❤️`,
+    "",
+    "Another month of being together, loving you, and annoying each other. Thank you for choosing to stay by my side through everything.",
+    "",
+    "I'm so lucky to have you, and I love you more and more each day.",
+    "",
+    "Always your annoying man"
+  ].join('\n');
+
+  startTyping(fallbackLetter, 'msTyped', 'msFooter');
+  spawnBurst(modal);
+}
+
+// ── 3. Meeting Celebration Event ──────────────────────────
+function celebrateMeeting(monthsaryNum, dateStr, autoTriggerModal = false) {
+  const heart = document.getElementById('mwHeart');
+
+  // Confetti / Fireworks bursts
+  for (let i = 0; i < 5; i++) {
+    setTimeout(() => {
+      const cx = (window.innerWidth * 0.2) + Math.random() * (window.innerWidth * 0.6);
+      const cy = (window.innerHeight * 0.2) + Math.random() * (window.innerHeight * 0.5);
+      if (typeof createFireworkBurst === 'function') {
+        createFireworkBurst(cx, cy);
+      }
+    }, i * 220);
+  }
+
+  // Heart particle burst
+  if (heart && typeof spawnBurst === 'function') {
+    spawnBurst(heart);
+  }
+
+  // Auto-trigger monthsary letter modal
+  if (autoTriggerModal) {
+    setTimeout(() => {
+      const msgIndex = MONTHSARY_MESSAGES.findIndex(m => m.num === monthsaryNum);
+      if (msgIndex !== -1 && typeof openMonthsaryLetter === 'function') {
+        openMonthsaryLetter(msgIndex);
+      } else {
+        triggerGenericMonthsaryLetter(monthsaryNum, dateStr);
+      }
+    }, 1500);
+  }
+}
+
+// ── 4. Main Init & Positioning ────────────────────────────
+function initMonthsaryWalk() {
+  const container = document.getElementById('monthsaryWalk');
+  const label     = document.getElementById('mwLabel');
+  const me        = document.getElementById('mwMe');
+  const her       = document.getElementById('mwHer');
+  const trackArea = document.getElementById('mwTrackArea');
+
+  if (!container || !label || !me || !her || !trackArea) return;
+
+  const daysUntil    = getDaysUntilNext();
+  const monthsaryNum = getNextMonthsaryNumber();
+  const targetDate   = getNextMonthsaryDate();
+  const dateStr      = targetDate.toLocaleDateString('en-US', {
+    month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC'
+  });
+
+  // Only visible when next monthsary is <= 7 days away
+  if (daysUntil > 7) {
+    container.classList.remove('visible', 'meeting');
+    return;
+  }
+
+  container.classList.add('visible');
+
+  // Progress from 0 (7 days away) to 1 (0 days away)
+  const progress = 1 - (daysUntil / 7);
+
+  if (daysUntil === 0) {
+    // ── Meeting day (14th) ──
+    container.classList.add('meeting');
+    label.textContent = `We're meeting today! Happy ${ordinalSuffix(monthsaryNum)} Monthsary!`;
+
+    // Position in center facing each other
+    me.style.left   = 'calc(50% - 32px)';
+    me.style.right  = 'auto';
+    her.style.left  = 'calc(50% + 2px)';
+    her.style.right = 'auto';
+
+    // Check if already celebrated today to avoid spamming every refresh
+    const now = getManilaNow();
+    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const lastCeleb = localStorage.getItem('lastCelebratedMonthsary');
+
+    if (lastCeleb !== todayKey) {
+      localStorage.setItem('lastCelebratedMonthsary', todayKey);
+      setTimeout(() => celebrateMeeting(monthsaryNum, dateStr, true), 1000);
+    }
+  } else {
+    // ── Approaching each other (1 to 7 days away) ──
+    container.classList.remove('meeting');
+    if (daysUntil === 1) {
+      label.textContent = `1 day until our ${ordinalSuffix(monthsaryNum)} monthsary...`;
+    } else {
+      label.textContent = `${daysUntil} days until our ${ordinalSuffix(monthsaryNum)} monthsary...`;
+    }
+
+    // Walking positions (percentage from edges):
+    // At 7 days (progress = 0): me at 4% left, her at 4% right
+    // At 1 day (progress = 0.857): me at 37% left, her at 37% right
+    const walkOffset = 4 + (38 * progress);
+    me.style.left   = `${walkOffset}%`;
+    me.style.right  = 'auto';
+    her.style.right = `${walkOffset}%`;
+    her.style.left  = 'auto';
+  }
+
+  // Interactive click on track or characters
+  trackArea.onclick = () => {
+    if (daysUntil === 0) {
+      celebrateMeeting(monthsaryNum, dateStr, true);
+    } else {
+      if (typeof spawnBurst === 'function') spawnBurst(trackArea);
+      me.style.transform = 'translateY(-10px) scale(1.1)';
+      her.style.transform = 'translateY(-10px) scale(1.1)';
+      setTimeout(() => {
+        me.style.transform = '';
+        her.style.transform = '';
+      }, 350);
+    }
+  };
 }
