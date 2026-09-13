@@ -1152,7 +1152,7 @@ function initMonthsaryWalk() {
   if (daysUntil === 0) {
     // ── Meeting day (14th) ──
     container.classList.add('meeting');
-    label.textContent = `We're meeting today! Happy ${ordinalSuffix(monthsaryNum)} Monthsary!`;
+    label.textContent = `Happy ${ordinalSuffix(monthsaryNum)} Monthsary!`;
 
     // Position in center facing each other
     me.style.left   = 'calc(50% - 32px)';
