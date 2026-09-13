@@ -69,8 +69,22 @@ const MONTHSARY_MESSAGES = [
         "Still the man you met four months ago, and will continue to be the better man that you deserve. Happy third monthsary, to my prettiest baby.",
      ].join('\n')
    },
-];
 
+   {
+  num: 4,
+  label: 'Fourth Monthsary',
+  date: 'September 14, 2026',
+  letter: [
+    "My baby,",
+    "",
+    "It's been four months since we met, and I can't believe how much I've grown to love you. You've brought so much joy and laughter into my life.",
+    "",
+    "Even this month, I'll continue to be the better man for you, to understand you more, and to keep learning how to love you better. I just hope that no matter how many fights or arguments we have, at the end of the day, you and I will still choose to be together.",
+    "",
+    "Happy fourth monthsary, to my prettiest baby.",
+  ].join('\n')
+},
+];
 
 
 /* ══════════════════════════════════════════════════════════
@@ -148,15 +162,24 @@ function resizeCanvas() {
   canvas.height = window.innerHeight;
 }
 resizeCanvas();
-window.addEventListener('resize', () => {
+function debounce(fn, delay) {
+  let t = null;
+  return (...args) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...args), delay);
+  };
+}
+
+const handleResize = debounce(() => {
   resizeCanvas();
   repositionWindowsMobile();
   initMonthsary();
   if (typeof initMonthsaryWalk === 'function') initMonthsaryWalk();
-});
+}, 200);
+window.addEventListener('resize', handleResize);
 
 const PARTICLE_COUNT = REDUCED_MOTION ? 0
-  : (navigator.hardwareConcurrency <= 4 ? 25 : 55);
+  : ((navigator.hardwareConcurrency || 4) <= 4 ? 25 : 55);
 
 class Particle {
   constructor(init = false) {
@@ -442,6 +465,35 @@ function ordinalSuffix(n) {
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
+// ── Manila date helpers for envelope gating ─────────────────
+function parseMonthsaryDate(dateStr) {
+  const MONTHS = { January:0, February:1, March:2, April:3, May:4, June:5, July:6, August:7, September:8, October:9, November:10, December:11 };
+  const m = String(dateStr).match(/([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})/);
+  if (!m) return null;
+  const month = MONTHS[m[1]];
+  if (month === undefined) return null;
+  return new Date(Date.UTC(parseInt(m[3], 10), month, parseInt(m[2], 10), 0, 0, 0));
+}
+
+function getManilaTodayMidnightUtc() {
+  const now = getManilaNow();
+  return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0));
+}
+
+let _midnightTimer = null;
+function scheduleMonthsaryMidnightCheck() {
+  if (_midnightTimer) clearTimeout(_midnightTimer);
+  const nowManila = getManilaNow();
+  const nextMidnight = new Date(nowManila);
+  nextMidnight.setHours(24, 0, 0, 0);
+  const msUntil = nextMidnight - nowManila + 1200;
+  _midnightTimer = setTimeout(() => {
+    initMonthsary();
+    if (typeof initMonthsaryWalk === 'function') initMonthsaryWalk();
+    scheduleMonthsaryMidnightCheck();
+  }, msUntil);
+}
+
 function initMonthsary() {
   const layer   = document.getElementById('monthsaryLayer');
   const counter = document.getElementById('msCounter');
@@ -450,11 +502,25 @@ function initMonthsary() {
   // Clear existing envelopes to avoid duplicates on resize
   layer.innerHTML = '';
 
-  // Update standalone counter pill
+  // ── DATE GATE: only show envelopes whose date <= today Manila midnight ──
+  const todayMidnight = getManilaTodayMidnightUtc();
+  const visibleMessages = MONTHSARY_MESSAGES
+    .map((msg, origIdx) => ({ msg, origIdx }))
+    .filter(({ msg }) => {
+      const d = parseMonthsaryDate(msg.date);
+      return d && d.getTime() <= todayMidnight.getTime();
+    });
+
+  // Update standalone counter pill — counts visible only (so tomorrow 3→4)
   if (counter) {
-    const n = MONTHSARY_MESSAGES.length;
-    counter.textContent = n === 1 ? '1 monthsary' : `${n} monthsaries`;
-    setTimeout(() => counter.classList.add('visible'), 800);
+    const n = visibleMessages.length;
+    if (n === 0) {
+      counter.textContent = '';
+      counter.classList.remove('visible');
+    } else {
+      counter.textContent = n === 1 ? '1 monthsary' : `${n} monthsaries`;
+      setTimeout(() => counter.classList.add('visible'), 800);
+    }
   }
 
   // Safe percentage coordinates (tested for mobile 320px to wide desktop 4K)
@@ -474,8 +540,8 @@ function initMonthsary() {
     { left: '72%', top: '52%', dur: '7.2s', delay: '-3.5s' },
   ];
 
-  MONTHSARY_MESSAGES.forEach((msg, i) => {
-    const pos = positions[i % positions.length];
+  visibleMessages.forEach(({ msg, origIdx }, displayIdx) => {
+    const pos = positions[displayIdx % positions.length];
     const env = document.createElement('div');
     env.className = 'ms-envelope';
     env.setAttribute('role', 'button');
@@ -488,16 +554,18 @@ function initMonthsary() {
 
     env.innerHTML = `
       <div class="ms-env-card">
-        <span class="ms-env-seal">${MS_SEALS[i % MS_SEALS.length]}</span>
+        <span class="ms-env-seal">${MS_SEALS[origIdx % MS_SEALS.length]}</span>
       </div>
       <span class="ms-env-label">${ordinalSuffix(msg.num)}</span>
     `;
-    env.addEventListener('click', () => openMonthsaryLetter(i));
+    env.addEventListener('click', () => openMonthsaryLetter(origIdx));
     env.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openMonthsaryLetter(i); }
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openMonthsaryLetter(origIdx); }
     });
     layer.appendChild(env);
   });
+
+  scheduleMonthsaryMidnightCheck();
 }
 
 function openMonthsaryLetter(idx) {
@@ -1007,7 +1075,7 @@ function triggerGenericMonthsaryLetter(num, dateStr) {
   const fallbackLetter = [
     "My baby,",
     "",
-    `Happy ${ordinalSuffix(num)} monthsary to us! ❤️`,
+    `Happy ${ordinalSuffix(num)} monthsary to us!`,
     "",
     "Another month of being together, loving you, and annoying each other. Thank you for choosing to stay by my side through everything.",
     "",
