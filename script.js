@@ -77,9 +77,9 @@ const MONTHSARY_MESSAGES = [
   letter: [
     "My baby,",
     "",
-    "It's been four months since we met, and I can't believe how much I've grown to love you. You've brought so much joy and laughter into my life.",
+    "Yohooo, four months already! Damn, bilis ng panahon. I hope we grow together more and more, and learn from our mistakes before. I know our arguments is often but I hope we can still choose to stay together and fix things after.",
     "",
-    "Even this month, I'll continue to be the better man for you, to understand you more, and to keep learning how to love you better. I just hope that no matter how many fights or arguments we have, at the end of the day, you and I will still choose to be together.",
+    "Even our arguments, I still choose to love you regardless of what happened. I hope you still choose to love me after our arguments, no matter how many times i annoy you because that's how many times I love you and wanna fuck you lol.",
     "",
     "Happy fourth monthsary, to my prettiest baby.",
   ].join('\n')
