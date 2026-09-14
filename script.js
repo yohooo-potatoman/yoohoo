@@ -1030,8 +1030,8 @@ function getNextMonthsaryDate() {
   let targetYear = year;
   let targetMonth = month;
 
-  // If today is past the 14th, the next monthsary is the 14th of next month
-  if (day > 14) {
+  // Reset on the 15th so the next countdown starts after the 14th has passed
+  if (day >= 15) {
     targetMonth++;
     if (targetMonth > 11) {
       targetMonth = 0;
@@ -1138,16 +1138,18 @@ function initMonthsaryWalk() {
     month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC'
   });
 
-  // Only visible when next monthsary is <= 7 days away
-  if (daysUntil > 7) {
+  const WALK_VISIBLE_DAYS = 30;
+
+  // Only visible when next monthsary is <= 30 days away
+  if (daysUntil > WALK_VISIBLE_DAYS) {
     container.classList.remove('visible', 'meeting');
     return;
   }
 
   container.classList.add('visible');
 
-  // Progress from 0 (7 days away) to 1 (0 days away)
-  const progress = 1 - (daysUntil / 7);
+  // Progress from 0 (30 days away) to 1 (0 days away)
+  const progress = 1 - (daysUntil / WALK_VISIBLE_DAYS);
 
   if (daysUntil === 0) {
     // ── Meeting day (14th) ──
@@ -1170,7 +1172,7 @@ function initMonthsaryWalk() {
       setTimeout(() => celebrateMeeting(monthsaryNum, dateStr, true), 1000);
     }
   } else {
-    // ── Approaching each other (1 to 7 days away) ──
+    // ── Approaching each other (1 to 30 days away) ──
     container.classList.remove('meeting');
     if (daysUntil === 1) {
       label.textContent = `1 day until our ${ordinalSuffix(monthsaryNum)} monthsary...`;
@@ -1179,8 +1181,8 @@ function initMonthsaryWalk() {
     }
 
     // Walking positions (percentage from edges):
-    // At 7 days (progress = 0): me at 4% left, her at 4% right
-    // At 1 day (progress = 0.857): me at 37% left, her at 37% right
+    // At 30 days (progress = 0): me at 4% left, her at 4% right
+    // At 1 day (progress = 0.967): me at 37% left, her at 37% right
     const walkOffset = 4 + (38 * progress);
     me.style.left   = `${walkOffset}%`;
     me.style.right  = 'auto';
