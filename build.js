@@ -4,6 +4,9 @@ const { execFileSync } = require('child_process');
 
 const ROOT = __dirname;
 const DIST = path.join(ROOT, 'dist');
+const BUILD_VERSION = Date.now().toString(36);
+const CSS_FILE_NAME = `style.${BUILD_VERSION}.css`;
+const JS_FILE_NAME = `script.${BUILD_VERSION}.js`;
 const cleanCssCli = path.join(ROOT, 'node_modules', 'clean-css-cli', 'bin', 'cleancss');
 const javascriptObfuscatorCli = path.join(ROOT, 'node_modules', 'javascript-obfuscator', 'bin', 'javascript-obfuscator');
 
@@ -35,7 +38,7 @@ console.log('[build] assets copied');
 // ── 2. Minify CSS ──────────────────────────────────────────
 execFileSync(process.execPath, [
   cleanCssCli,
-  '--output', path.join(DIST, 'style.css'),
+  '--output', path.join(DIST, CSS_FILE_NAME),
   path.join(ROOT, 'style.css'),
 ], { stdio: 'inherit', cwd: ROOT });
 console.log('[build] CSS minified');
@@ -45,11 +48,11 @@ execFileSync(process.execPath, [
   javascriptObfuscatorCli,
   path.join(ROOT, 'script.js'),
   '--config', path.join(ROOT, 'obfuscator.config.json'),
-  '--output', path.join(DIST, 'script.js'),
+  '--output', path.join(DIST, JS_FILE_NAME),
 ], { stdio: 'inherit', cwd: ROOT });
 console.log('[build] JS obfuscated');
 
-// ── 4. Minify HTML (points to same script/style names) ────
+// ── 4. Minify HTML and inject versioned asset filenames ────
 const { minify } = require('html-minifier-terser');
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 minify(html, {
@@ -61,7 +64,11 @@ minify(html, {
   removeEmptyAttributes: true,
   sortAttributes: true,
 }).then(minHtml => {
-  fs.writeFileSync(path.join(DIST, 'index.html'), minHtml, 'utf8');
+  const versionedHtml = minHtml
+    .replace(/href="style\.css"/g, `href="${CSS_FILE_NAME}"`)
+    .replace(/src="script\.js"/g, `src="${JS_FILE_NAME}"`);
+
+  fs.writeFileSync(path.join(DIST, 'index.html'), versionedHtml, 'utf8');
   verifyNoPublicSourceMaps();
   console.log('[build] HTML minified');
   printStats();
@@ -74,7 +81,7 @@ function verifyNoPublicSourceMaps() {
     throw new Error(`Public source maps found in dist/: ${maps.join(', ')}`);
   }
 
-  for (const file of ['style.css', 'script.js']) {
+  for (const file of [CSS_FILE_NAME, JS_FILE_NAME]) {
     const contents = fs.readFileSync(path.join(DIST, file), 'utf8');
     if (contents.includes('sourceMappingURL=')) {
       throw new Error(`Public source map reference found in dist/${file}`);
@@ -83,13 +90,13 @@ function verifyNoPublicSourceMaps() {
 }
 
 function printStats() {
-  const files = ['index.html', 'style.css', 'script.js'];
+  const files = ['index.html', CSS_FILE_NAME, JS_FILE_NAME];
   console.log('\n── Size comparison ─────────────────────────────');
   files.forEach(f => {
-    const src  = fs.existsSync(path.join(ROOT, f))   ? fs.statSync(path.join(ROOT, f)).size           : 0;
-    const dist = fs.existsSync(path.join(DIST, f))   ? fs.statSync(path.join(DIST, f)).size            : 0;
+    const src  = f === 'index.html' ? fs.statSync(path.join(ROOT, 'index.html')).size : 0;
+    const dist = fs.statSync(path.join(DIST, f)).size;
     const pct  = src ? Math.round((1 - dist/src)*100) : 0;
-    console.log(`  ${f.padEnd(12)} ${(src/1024).toFixed(1)}kB → ${(dist/1024).toFixed(1)}kB  (-${pct}%)`);
+    console.log(`  ${f.padEnd(18)} ${(src/1024).toFixed(1)}kB → ${(dist/1024).toFixed(1)}kB  (-${pct}%)`);
   });
   console.log('────────────────────────────────────────────────');
   console.log('[build] Done! Output in dist/');
