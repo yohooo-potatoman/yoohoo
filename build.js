@@ -7,8 +7,10 @@ const DIST = path.join(ROOT, 'dist');
 const BUILD_VERSION = Date.now().toString(36);
 const CSS_FILE_NAME = `style.${BUILD_VERSION}.css`;
 const JS_FILE_NAME = `script.${BUILD_VERSION}.js`;
+const FIREBASE_FILE_NAME = `firebase.${BUILD_VERSION}.js`;
 const cleanCssCli = path.join(ROOT, 'node_modules', 'clean-css-cli', 'bin', 'cleancss');
 const javascriptObfuscatorCli = path.join(ROOT, 'node_modules', 'javascript-obfuscator', 'bin', 'javascript-obfuscator');
+const esbuildCli = path.join(ROOT, 'node_modules', 'esbuild', 'bin', 'esbuild');
 
 // Clean dist
 fs.rmSync(DIST, { recursive: true, force: true });
@@ -52,7 +54,18 @@ execFileSync(process.execPath, [
 ], { stdio: 'inherit', cwd: ROOT });
 console.log('[build] JS obfuscated');
 
-// ── 4. Minify HTML and inject versioned asset filenames ────
+// ── 4. Bundle Firebase SDK ─────────────────────────────────
+execFileSync(process.execPath, [
+  esbuildCli,
+  path.join(ROOT, 'firebase-vault.js'),
+  '--bundle',
+  '--platform=browser',
+  '--format=iife',
+  `--outfile=${path.join(DIST, FIREBASE_FILE_NAME)}`,
+], { stdio: 'inherit', cwd: ROOT });
+console.log('[build] Firebase SDK bundled');
+
+// ── 5. Minify HTML and inject versioned asset filenames ────
 const { minify } = require('html-minifier-terser');
 const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 minify(html, {
@@ -66,6 +79,7 @@ minify(html, {
 }).then(minHtml => {
   const versionedHtml = minHtml
     .replace(/href="style\.css"/g, `href="${CSS_FILE_NAME}"`)
+    .replace(/src="firebase-vault\.js"/g, `src="${FIREBASE_FILE_NAME}"`)
     .replace(/src="script\.js"/g, `src="${JS_FILE_NAME}"`);
 
   fs.writeFileSync(path.join(DIST, 'index.html'), versionedHtml, 'utf8');
@@ -81,7 +95,7 @@ function verifyNoPublicSourceMaps() {
     throw new Error(`Public source maps found in dist/: ${maps.join(', ')}`);
   }
 
-  for (const file of [CSS_FILE_NAME, JS_FILE_NAME]) {
+  for (const file of [CSS_FILE_NAME, JS_FILE_NAME, FIREBASE_FILE_NAME]) {
     const contents = fs.readFileSync(path.join(DIST, file), 'utf8');
     if (contents.includes('sourceMappingURL=')) {
       throw new Error(`Public source map reference found in dist/${file}`);
@@ -90,7 +104,7 @@ function verifyNoPublicSourceMaps() {
 }
 
 function printStats() {
-  const files = ['index.html', CSS_FILE_NAME, JS_FILE_NAME];
+  const files = ['index.html', CSS_FILE_NAME, JS_FILE_NAME, FIREBASE_FILE_NAME];
   console.log('\n── Size comparison ─────────────────────────────');
   files.forEach(f => {
     const src  = f === 'index.html' ? fs.statSync(path.join(ROOT, 'index.html')).size : 0;

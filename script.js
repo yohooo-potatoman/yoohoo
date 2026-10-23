@@ -86,6 +86,7 @@ const MONTHSARY_MESSAGES = [
 },
 ];
 
+let customMonthsaryMessages = [];
 
 /* ══════════════════════════════════════════════════════════
    50 LOVE REASONS (no emojis)
@@ -475,6 +476,22 @@ function parseMonthsaryDate(dateStr) {
   return new Date(Date.UTC(parseInt(m[3], 10), month, parseInt(m[2], 10), 0, 0, 0));
 }
 
+function getUnlockDate(num) {
+  const totalMonths = 5 + (num - 1); // 1 = June 2026 (month 5)
+  const year = 2026 + Math.floor(totalMonths / 12);
+  const month = totalMonths % 12;
+  return new Date(Date.UTC(year, month, 14, 0, 0, 0));
+}
+
+function getAllMonthsaryMessages() {
+  const map = new Map();
+  // Base hardcoded messages
+  MONTHSARY_MESSAGES.forEach(m => map.set(m.num, m));
+  // Custom messages override or extend base messages
+  customMonthsaryMessages.forEach(m => map.set(m.num, m));
+  return Array.from(map.values()).sort((a, b) => a.num - b.num);
+}
+
 function getManilaTodayMidnightUtc() {
   const now = getManilaNow();
   return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0));
@@ -502,16 +519,15 @@ function initMonthsary() {
   // Clear existing envelopes to avoid duplicates on resize
   layer.innerHTML = '';
 
-  // ── DATE GATE: only show envelopes whose date <= today Manila midnight ──
+  // ── DATE GATE: only show envelopes whose scheduled 14th <= today Manila midnight ──
   const todayMidnight = getManilaTodayMidnightUtc();
-  const visibleMessages = MONTHSARY_MESSAGES
-    .map((msg, origIdx) => ({ msg, origIdx }))
-    .filter(({ msg }) => {
-      const d = parseMonthsaryDate(msg.date);
-      return d && d.getTime() <= todayMidnight.getTime();
-    });
+  const allMessages   = getAllMonthsaryMessages();
+  const visibleMessages = allMessages.filter(msg => {
+    const d = parseMonthsaryDate(msg.date) || getUnlockDate(msg.num);
+    return d && d.getTime() <= todayMidnight.getTime();
+  });
 
-  // Update standalone counter pill — counts visible only (so tomorrow 3→4)
+  // Update standalone counter pill — counts visible unlocked only
   if (counter) {
     const n = visibleMessages.length;
     if (n === 0) {
@@ -524,7 +540,6 @@ function initMonthsary() {
   }
 
   // Safe percentage coordinates (tested for mobile 320px to wide desktop 4K)
-  // Keeps all envelopes within safe visible zones far away from edges and the bottom walk bar
   const isMobile = window.innerWidth <= 700;
   const positions = isMobile ? [
     { left: '10%', top: '16%', dur: '6s',   delay: '0s' },
@@ -540,7 +555,7 @@ function initMonthsary() {
     { left: '72%', top: '52%', dur: '7.2s', delay: '-3.5s' },
   ];
 
-  visibleMessages.forEach(({ msg, origIdx }, displayIdx) => {
+  visibleMessages.forEach((msg, displayIdx) => {
     const pos = positions[displayIdx % positions.length];
     const env = document.createElement('div');
     env.className = 'ms-envelope';
@@ -554,13 +569,13 @@ function initMonthsary() {
 
     env.innerHTML = `
       <div class="ms-env-card">
-        <span class="ms-env-seal">${MS_SEALS[origIdx % MS_SEALS.length]}</span>
+        <span class="ms-env-seal">${MS_SEALS[(msg.num - 1) % MS_SEALS.length]}</span>
       </div>
       <span class="ms-env-label">${ordinalSuffix(msg.num)}</span>
     `;
-    env.addEventListener('click', () => openMonthsaryLetter(origIdx));
+    env.addEventListener('click', () => openMonthsaryLetter(msg.num));
     env.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openMonthsaryLetter(origIdx); }
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openMonthsaryLetter(msg.num); }
     });
     layer.appendChild(env);
   });
@@ -568,8 +583,14 @@ function initMonthsary() {
   scheduleMonthsaryMidnightCheck();
 }
 
-function openMonthsaryLetter(idx) {
-  const msg    = MONTHSARY_MESSAGES[idx];
+function openMonthsaryLetter(numOrIdx) {
+  const all = getAllMonthsaryMessages();
+  let msg = all.find(m => m.num === numOrIdx);
+  if (!msg && typeof numOrIdx === 'number' && all[numOrIdx]) {
+    msg = all[numOrIdx];
+  }
+  if (!msg) return;
+
   const modal  = document.getElementById('monthsaryModal');
   const ordEl  = document.getElementById('msOrdinal');
   const dateEl = document.getElementById('msDate');
@@ -1013,7 +1034,7 @@ function spawnHeartsEffect(originEl) {
    WALKING MONTHSARY COUNTDOWN
 ══════════════════════════════════════════════════════════ */
 
-// ── 1. Manila Time & Date Calculations ────────────────────
+// ── 1. Manila Time & Cycle Calculations ───────────────────
 function getManilaNow() {
   const now = new Date();
   // Asia/Manila is UTC+8
@@ -1021,41 +1042,52 @@ function getManilaNow() {
   return new Date(utc + (3600000 * 8));
 }
 
-function getNextMonthsaryDate() {
+function getMonthsaryCycleInfo() {
   const now = getManilaNow();
   const year = now.getFullYear();
   const month = now.getMonth();
   const day = now.getDate();
 
-  let targetYear = year;
-  let targetMonth = month;
+  let nextYear = year;
+  let nextMonth = month;
+  let prevYear = year;
+  let prevMonth = month;
 
-  // Reset on the 15th so the next countdown starts after the 14th has passed
   if (day >= 15) {
-    targetMonth++;
-    if (targetMonth > 11) {
-      targetMonth = 0;
-      targetYear++;
-    }
+    // Current cycle: from this month's 14th to next month's 14th
+    nextMonth++;
+    if (nextMonth > 11) { nextMonth = 0; nextYear++; }
+  } else if (day < 14) {
+    // Current cycle: from previous month's 14th to this month's 14th
+    prevMonth--;
+    if (prevMonth < 0) { prevMonth = 11; prevYear--; }
   }
 
-  // Returns UTC date corresponding to Manila midnight of the 14th
-  return new Date(Date.UTC(targetYear, targetMonth, 14, 0, 0, 0));
+  const prevTarget = new Date(Date.UTC(prevYear, prevMonth, 14, 0, 0, 0));
+  const nextTarget = new Date(Date.UTC(nextYear, nextMonth, 14, 0, 0, 0));
+  const todayMidnight = new Date(Date.UTC(year, month, day, 0, 0, 0));
+
+  const daysUntil = Math.round((nextTarget - todayMidnight) / 86400000);
+  const totalDays = Math.max(Math.round((nextTarget - prevTarget) / 86400000), 1);
+  const elapsed = Math.max(Math.round((todayMidnight - prevTarget) / 86400000), 0);
+
+  // Progress from 0 (day after monthsary, 15th) to 1 (monthsary day, 14th)
+  const progress = daysUntil === 0 ? 1 : Math.min(Math.max(elapsed / totalDays, 0), 1);
+  const monthsaryNum = (nextYear - 2026) * 12 + (nextMonth - 5) + 1;
+
+  return { daysUntil, monthsaryNum, targetDate: nextTarget, progress };
+}
+
+function getNextMonthsaryDate() {
+  return getMonthsaryCycleInfo().targetDate;
 }
 
 function getDaysUntilNext() {
-  const now = getManilaNow();
-  const todayMidnight = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0));
-  const nextTarget = getNextMonthsaryDate();
-  return Math.round((nextTarget - todayMidnight) / 86400000);
+  return getMonthsaryCycleInfo().daysUntil;
 }
 
 function getNextMonthsaryNumber() {
-  const target = getNextMonthsaryDate();
-  const targetYear = target.getUTCFullYear();
-  const targetMonth = target.getUTCMonth(); // 0 = Jan, 5 = June
-  // Month 1 was June 14, 2026 (year: 2026, month: 5)
-  return (targetYear - 2026) * 12 + (targetMonth - 5) + 1;
+  return getMonthsaryCycleInfo().monthsaryNum;
 }
 
 // ── 2. Fallback Generic Monthsary Letter ───────────────────
@@ -1111,9 +1143,10 @@ function celebrateMeeting(monthsaryNum, dateStr, autoTriggerModal = false) {
   // Auto-trigger monthsary letter modal
   if (autoTriggerModal) {
     setTimeout(() => {
-      const msgIndex = MONTHSARY_MESSAGES.findIndex(m => m.num === monthsaryNum);
-      if (msgIndex !== -1 && typeof openMonthsaryLetter === 'function') {
-        openMonthsaryLetter(msgIndex);
+      const all = getAllMonthsaryMessages();
+      const msg = all.find(m => m.num === monthsaryNum);
+      if (msg && typeof openMonthsaryLetter === 'function') {
+        openMonthsaryLetter(monthsaryNum);
       } else {
         triggerGenericMonthsaryLetter(monthsaryNum, dateStr);
       }
@@ -1121,35 +1154,25 @@ function celebrateMeeting(monthsaryNum, dateStr, autoTriggerModal = false) {
   }
 }
 
-// ── 4. Main Init & Positioning ────────────────────────────
+// ── 4. Main Init & Positioning (Always Visible & Resets on 15th) ──
 function initMonthsaryWalk() {
   const container = document.getElementById('monthsaryWalk');
   const label     = document.getElementById('mwLabel');
   const me        = document.getElementById('mwMe');
   const her       = document.getElementById('mwHer');
-  const trackArea = document.getElementById('mwTrackArea');
 
-  if (!container || !label || !me || !her || !trackArea) return;
+  if (!container || !label || !me || !her) return;
 
-  const daysUntil    = getDaysUntilNext();
-  const monthsaryNum = getNextMonthsaryNumber();
-  const targetDate   = getNextMonthsaryDate();
+  const cycle        = getMonthsaryCycleInfo();
+  const daysUntil    = cycle.daysUntil;
+  const monthsaryNum = cycle.monthsaryNum;
+  const targetDate   = cycle.targetDate;
   const dateStr      = targetDate.toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC'
   });
 
-  const WALK_VISIBLE_DAYS = 30;
-
-  // Only visible when next monthsary is <= 30 days away
-  if (daysUntil > WALK_VISIBLE_DAYS) {
-    container.classList.remove('visible', 'meeting');
-    return;
-  }
-
+  // Always visible — never hides after the 15th, smoothly resets to new month
   container.classList.add('visible');
-
-  // Progress from 0 (30 days away) to 1 (0 days away)
-  const progress = 1 - (daysUntil / WALK_VISIBLE_DAYS);
 
   if (daysUntil === 0) {
     // ── Meeting day (14th) ──
@@ -1162,7 +1185,7 @@ function initMonthsaryWalk() {
     her.style.left  = 'calc(50% + 2px)';
     her.style.right = 'auto';
 
-    // Check if already celebrated today to avoid spamming every refresh
+    // Celebrate once per monthsary day
     const now = getManilaNow();
     const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const lastCeleb = localStorage.getItem('lastCelebratedMonthsary');
@@ -1172,7 +1195,7 @@ function initMonthsaryWalk() {
       setTimeout(() => celebrateMeeting(monthsaryNum, dateStr, true), 1000);
     }
   } else {
-    // ── Approaching each other (1 to 30 days away) ──
+    // ── Approaching each other across the month ──
     container.classList.remove('meeting');
     if (daysUntil === 1) {
       label.textContent = `1 day until our ${ordinalSuffix(monthsaryNum)} monthsary...`;
@@ -1181,27 +1204,340 @@ function initMonthsaryWalk() {
     }
 
     // Walking positions (percentage from edges):
-    // At 30 days (progress = 0): me at 4% left, her at 4% right
-    // At 1 day (progress = 0.967): me at 37% left, her at 37% right
-    const walkOffset = 4 + (38 * progress);
+    // At reset (progress = 0): me at 4% left, her at 4% right
+    // Near center (progress = 1): me at 42% left, her at 42% right
+    const walkOffset = 4 + (38 * cycle.progress);
     me.style.left   = `${walkOffset}%`;
     me.style.right  = 'auto';
     her.style.right = `${walkOffset}%`;
     her.style.left  = 'auto';
   }
 
-  // Interactive click on track or characters
-  trackArea.onclick = () => {
-    if (daysUntil === 0) {
-      celebrateMeeting(monthsaryNum, dateStr, true);
+  // Attach 5-click secret trigger
+  setupSecretWalkTrigger(container);
+}
+
+// ── 5. Secret 5-Click Vault Trigger ───────────────────────
+let _walkClickCount = 0;
+let _walkClickTimer = null;
+
+function setupSecretWalkTrigger(container) {
+  container.onclick = (e) => {
+    _walkClickCount++;
+    clearTimeout(_walkClickTimer);
+    _walkClickTimer = setTimeout(() => { _walkClickCount = 0; }, 2200);
+
+    // If clicked 5 times quickly, open secret creator!
+    if (_walkClickCount >= 5) {
+      _walkClickCount = 0;
+      openSecretAdminModal();
+      return;
+    }
+
+    // Normal click interaction
+    const cycle = getMonthsaryCycleInfo();
+    if (cycle.daysUntil === 0) {
+      const dateStr = cycle.targetDate.toLocaleDateString('en-US', {
+        month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC'
+      });
+      celebrateMeeting(cycle.monthsaryNum, dateStr, true);
     } else {
-      if (typeof spawnBurst === 'function') spawnBurst(trackArea);
-      me.style.transform = 'translateY(-10px) scale(1.1)';
-      her.style.transform = 'translateY(-10px) scale(1.1)';
+      if (typeof spawnBurst === 'function') spawnBurst(container);
+      const me = document.getElementById('mwMe');
+      const her = document.getElementById('mwHer');
+      if (me) me.style.transform = 'translateY(-10px) scale(1.1)';
+      if (her) her.style.transform = 'translateY(-10px) scale(1.1)';
       setTimeout(() => {
-        me.style.transform = '';
-        her.style.transform = '';
+        if (me) me.style.transform = '';
+        if (her) her.style.transform = '';
       }, 350);
     }
   };
 }
+
+/* ══════════════════════════════════════════════════════════
+   SECRET LETTER VAULT (ADMIN MODAL)
+══════════════════════════════════════════════════════════ */
+function openSecretAdminModal() {
+  const modal = document.getElementById('secretAdminModal');
+  if (!modal) return;
+
+  const numInput   = document.getElementById('secretNum');
+  const labelInput = document.getElementById('secretLabel');
+  const letterArea = document.getElementById('secretLetter');
+
+  // Suggest next monthsary number
+  const all = getAllMonthsaryMessages();
+  const highestNum = all.reduce((max, m) => Math.max(max, m.num), 0);
+  const cycle = getMonthsaryCycleInfo();
+  const nextNum = Math.max(highestNum + 1, cycle.monthsaryNum);
+
+  numInput.value = nextNum;
+  updateSecretDateDisplay(nextNum);
+  labelInput.value = `${ordinalSuffix(nextNum)} Monthsary`;
+  letterArea.value = '';
+
+  renderSecretLettersList();
+  modal.style.display = 'flex';
+}
+
+function closeSecretAdminModal() {
+  const modal = document.getElementById('secretAdminModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function updateSecretDateDisplay(num) {
+  const dateInput = document.getElementById('secretDate');
+  if (!dateInput) return;
+  const d = getUnlockDate(parseInt(num, 10) || 1);
+  const dateStr = d.toLocaleDateString('en-US', {
+    month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC'
+  });
+  dateInput.value = dateStr;
+}
+
+function showSecretToast(msg, isError = false) {
+  const toast = document.getElementById('secretToast');
+  if (!toast) return;
+  toast.textContent = msg;
+  toast.style.display = 'block';
+  toast.style.background = isError ? '#fde8e8' : '#e8f5e1';
+  toast.style.borderColor = isError ? '#f8b4b4' : '#b7e0a8';
+  toast.style.color = isError ? '#9b1c1c' : '#2e5a1e';
+  setTimeout(() => { toast.style.display = 'none'; }, 4000);
+}
+
+function renderSecretLettersList() {
+  const listEl = document.getElementById('secretLettersList');
+  const countEl = document.getElementById('secretCount');
+  if (!listEl) return;
+
+  const all = getAllMonthsaryMessages();
+  const custom = customMonthsaryMessages;
+  const customNums = new Set(custom.map(m => m.num));
+  const todayMidnight = getManilaTodayMidnightUtc();
+
+  if (countEl) countEl.textContent = all.length;
+
+  listEl.innerHTML = '';
+  all.forEach(msg => {
+    const unlockDate = parseMonthsaryDate(msg.date) || getUnlockDate(msg.num);
+    const isUnlocked = unlockDate && unlockDate.getTime() <= todayMidnight.getTime();
+    const isCustom = customNums.has(msg.num);
+
+    const item = document.createElement('div');
+    item.className = 'secret-letter-item';
+    item.innerHTML = `
+      <div class="secret-letter-meta">
+        <span class="secret-letter-title">${ordinalSuffix(msg.num)} Monthsary &mdash; ${msg.label}</span>
+        <span class="secret-letter-status ${isUnlocked ? 'active' : ''}">
+          ${isUnlocked ? '&#10003; Active & Unlocked' : '&#128274; Unlocks on ' + msg.date}
+          ${isCustom ? ' (Custom)' : ' (Base)'}
+        </span>
+      </div>
+      <div class="secret-letter-actions">
+        <button type="button" class="secret-item-btn" onclick="editSecretLetter(${msg.num})">Edit</button>
+        ${isCustom ? `<button type="button" class="secret-item-btn del" onclick="deleteSecretLetter(${msg.num})">Delete</button>` : ''}
+      </div>
+    `;
+    listEl.appendChild(item);
+  });
+}
+
+function editSecretLetter(num) {
+  const all = getAllMonthsaryMessages();
+  const msg = all.find(m => m.num === num);
+  if (!msg) return;
+
+  document.getElementById('secretNum').value = msg.num;
+  document.getElementById('secretLabel').value = msg.label;
+  document.getElementById('secretLetter').value = msg.letter;
+  updateSecretDateDisplay(msg.num);
+  showSecretToast(`Loaded ${msg.label} for editing.`);
+}
+
+async function deleteSecretLetter(num) {
+  if (!confirm(`Delete custom letter for ${ordinalSuffix(num)} Monthsary?`)) return;
+  const custom = customMonthsaryMessages.filter(m => m.num !== num);
+  if (!await syncToCloud(custom)) return;
+  customMonthsaryMessages = custom;
+  initMonthsary();
+  initMonthsaryWalk();
+  renderSecretLettersList();
+  showSecretToast(`Deleted ${ordinalSuffix(num)} Monthsary.`);
+}
+
+function copySecretMessageGitCode() {
+  const num = parseInt(document.getElementById('secretNum').value, 10);
+  const label = document.getElementById('secretLabel').value.trim();
+  const letter = document.getElementById('secretLetter').value.trim();
+  const date = document.getElementById('secretDate').value;
+
+  if (!num || !label || !letter) {
+    showSecretToast('Please enter letter content first!', true);
+    return;
+  }
+
+  const lines = letter.split('\n').map(l => JSON.stringify(l)).join(',\n      ');
+  const code = [
+    '  {',
+    `    num: ${num},`,
+    `    label: '${label}',`,
+    `    date: '${date}',`,
+    '    letter: [',
+    `      ${lines}`,
+    "    ].join('\\n')",
+    '  },'
+  ].join('\n');
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(code).then(() => {
+      showSecretToast('Copied code! Ready to paste into script.js');
+    }).catch(() => {
+      prompt('Copy this code for script.js:', code);
+    });
+  } else {
+    prompt('Copy this code for script.js:', code);
+  }
+}
+
+function getFirebaseVault() {
+  const vault = window.firebaseVault;
+  if (
+    !vault
+    || typeof vault.signIn !== 'function'
+    || typeof vault.signOut !== 'function'
+    || typeof vault.loadMessages !== 'function'
+    || typeof vault.saveMessages !== 'function'
+    || typeof vault.getCurrentUser !== 'function'
+  ) {
+    throw new Error('Firebase setup is not loaded on this page. Open the latest deployed site or rebuild and serve the dist folder.');
+  }
+  return vault;
+}
+
+async function syncToCloud(messages) {
+  try {
+    await getFirebaseVault().saveMessages(messages);
+    return true;
+  } catch (error) {
+    console.error('Cloud sync error:', error);
+    showSecretToast(error.message || 'Could not sync letters to Firebase.', true);
+    return false;
+  }
+}
+
+async function fetchFromCloud() {
+  try {
+    const vault = getFirebaseVault();
+    let messages = await vault.loadMessages();
+    const user = vault.getCurrentUser();
+
+    if (user) {
+      const storedMessages = JSON.parse(localStorage.getItem('CUSTOM_MONTHSARY_MESSAGES') || '[]');
+      const legacyMessages = Array.isArray(storedMessages) ? storedMessages : [];
+      if (messages.length === 0 && legacyMessages.length > 0) {
+        await vault.saveMessages(legacyMessages);
+        messages = await vault.loadMessages();
+      }
+      localStorage.removeItem('CUSTOM_MONTHSARY_MESSAGES');
+    }
+    customMonthsaryMessages = messages;
+    initMonthsary();
+    if (typeof initMonthsaryWalk === 'function') initMonthsaryWalk();
+    renderSecretLettersList();
+  } catch (error) {
+    console.error('Cloud pull error:', error);
+    const status = document.getElementById('secretAuthStatus');
+    if (status) status.textContent = `Firebase connection failed: ${error.message}`;
+  }
+}
+
+// ── Attach Secret Modal Events ────────────────────────────
+document.getElementById('secretClose')?.addEventListener('click', closeSecretAdminModal);
+document.getElementById('secretNum')?.addEventListener('input', e => {
+  updateSecretDateDisplay(e.target.value);
+});
+document.getElementById('secretCopyCodeBtn')?.addEventListener('click', copySecretMessageGitCode);
+
+document.getElementById('secretAuthForm')?.addEventListener('submit', async e => {
+  e.preventDefault();
+  const email = document.getElementById('secretAuthEmail').value.trim();
+  const password = document.getElementById('secretAuthPassword').value;
+  const button = document.getElementById('secretSignInBtn');
+  button.disabled = true;
+  try {
+    await getFirebaseVault().signIn(email, password);
+    document.getElementById('secretAuthPassword').value = '';
+    showSecretToast('Signed in. You can now save letters across devices.');
+  } catch (error) {
+    console.error('Firebase sign-in error:', error);
+    showSecretToast(error.message || 'Could not sign in.', true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.getElementById('secretSignOutBtn')?.addEventListener('click', async () => {
+  try {
+    await getFirebaseVault().signOut();
+    showSecretToast('Signed out.');
+  } catch (error) {
+    console.error('Firebase sign-out error:', error);
+    showSecretToast(error.message || 'Could not sign out.', true);
+  }
+});
+
+window.addEventListener('firebase-vault-auth', event => {
+  const { email } = event.detail;
+  const status = document.getElementById('secretAuthStatus');
+  const fields = document.getElementById('secretAuthFields');
+  const signOutButton = document.getElementById('secretSignOutBtn');
+  if (status) status.textContent = email
+    ? `Signed in as ${email}. Letters you save will sync across devices.`
+    : 'Sign in with your Firebase admin account to save letters across devices.';
+  if (fields) fields.hidden = Boolean(email);
+  if (signOutButton) signOutButton.hidden = !email;
+  fetchFromCloud();
+});
+
+document.getElementById('secretMsgForm')?.addEventListener('submit', async e => {
+  e.preventDefault();
+  const num = parseInt(document.getElementById('secretNum').value, 10);
+  const label = document.getElementById('secretLabel').value.trim();
+  const letter = document.getElementById('secretLetter').value.trim();
+  const date = document.getElementById('secretDate').value;
+
+  if (!num || !label || !letter) return;
+  let user;
+  try {
+    user = getFirebaseVault().getCurrentUser();
+  } catch (error) {
+    showSecretToast(error.message, true);
+    return;
+  }
+  if (!user) {
+    showSecretToast('Sign in with your Firebase admin account before saving.', true);
+    return;
+  }
+
+  const newMsg = { num, label, date, letter };
+  const custom = [...customMonthsaryMessages];
+  const idx = custom.findIndex(m => m.num === num);
+  if (idx !== -1) {
+    custom[idx] = newMsg;
+  } else {
+    custom.push(newMsg);
+  }
+  custom.sort((a, b) => a.num - b.num);
+  if (!await syncToCloud(custom)) return;
+  customMonthsaryMessages = custom;
+  initMonthsary();
+  initMonthsaryWalk();
+  renderSecretLettersList();
+
+  showSecretToast(`Saved ${label}! It unlocks on ${date}.`);
+});
+
+// Check cloud on startup
+fetchFromCloud();
