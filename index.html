@@ -245,7 +245,7 @@
     ───────────────────────────────── -->
     <div id="monthsaryWalk" class="mw-container" aria-label="Walking to Monthsary countdown">
       <div class="mw-bubble" id="mwLabel">1 day until our 4th monthsary...</div>
-      <div class="mw-track-area" id="mwTrackArea" role="button" tabindex="0" title="Click to celebrate!">
+      <div class="mw-track-area" id="mwTrackArea" role="button" tabindex="0" aria-label="Tap for fireworks or hold for 5 seconds to open the secret vault">
         <div class="mw-track"></div>
         <div class="mw-char mw-me" id="mwMe" title="Me">
           <img src="assets/images/me-walk.png" alt="Me" class="mw-img" onerror="this.outerHTML='<span class=\'mw-fallback\'>👦</span>'" />
@@ -253,7 +253,7 @@
         <div class="mw-char mw-her" id="mwHer" title="My Baby">
           <img src="assets/images/her-walk.png" alt="My Baby" class="mw-img" onerror="this.outerHTML='<span class=\'mw-fallback\'>👧</span>'" />
         </div>
-        <div class="mw-heart" id="mwHeart" aria-hidden="true">💖</div>
+        <div class="mw-heart" id="mwHeart" aria-hidden="true">♥</div>
       </div>
     </div>
 
@@ -338,62 +338,59 @@
 
     </div>
 
-    <!-- ─────────────────────────────────
-         SECRET MONTHSARY MESSAGE VAULT (Triggered by 5 clicks on walking timer)
-    ───────────────────────────────── -->
+
     <div id="secretAdminModal" class="secret-modal" role="dialog" aria-modal="true" aria-label="Secret Letter Vault" style="display: none;">
       <div class="secret-modal-inner">
         <button class="secret-close" id="secretClose" aria-label="Close modal">&times;</button>
         <div class="secret-header">
-          <span class="secret-badge">Message</span>
-          <h2 class="secret-title">Add Message</h2>
+          <h2 class="secret-title" id="secretTitle">Sign In</h2>
         </div>
 
-        <form id="secretMsgForm" class="secret-form">
-          <div class="secret-row">
-            <div class="secret-field">
-              <label for="secretNum">Monthsary #</label>
-              <input type="number" id="secretNum" min="1" max="120" required />
-            </div>
-            <div class="secret-field">
-              <label for="secretDate">Date</label>
-              <input type="text" id="secretDate" readonly />
-            </div>
-          </div>
-
-          <div class="secret-field">
-            <label for="secretLabel">Label</label>
-            <input type="text" id="secretLabel" placeholder="e.g. Fifth Monthsary" required />
-          </div>
-
-          <div class="secret-field">
-            <label for="secretLetter">Letter</label>
-            <textarea id="secretLetter" rows="6" placeholder="Write your letter here... (Line breaks will be preserved)" required></textarea>
-          </div>
-
-          <div class="secret-actions">
-            <button type="submit" class="secret-btn secret-btn-primary" id="secretSaveBtn">Save Letter</button>
-            <button type="button" class="secret-btn secret-btn-secondary" id="secretCopyCodeBtn">Copy for script.js</button>
-          </div>
-        </form>
-
-        <div id="secretToast" class="secret-toast" style="display:none;"></div>
-
-        <!-- Saved Letters Management -->
-        <div class="secret-list-section">
-          <h3 class="secret-list-heading">Stored Letters (<span id="secretCount">0</span>)</h3>
-          <div id="secretLettersList" class="secret-letters-list"></div>
-        </div>
-
-        <form id="secretAuthForm" class="secret-cloud-details">
-          <p id="secretAuthStatus" class="secret-cloud-help">Sign in with your Firebase admin account to save letters across devices.</p>
-          <div id="secretAuthFields" class="secret-cloud-row">
+        <div class="secret-auth-gate">
+          <p id="secretAuthStatus" class="secret-cloud-help">Checking Firebase sign-in...</p>
+          <form id="secretAuthForm" class="secret-auth-form" hidden>
             <input type="email" id="secretAuthEmail" autocomplete="username" placeholder="Admin email" required />
             <input type="password" id="secretAuthPassword" autocomplete="current-password" placeholder="Password" required />
             <button type="submit" class="secret-btn secret-btn-sm" id="secretSignInBtn">Sign in</button>
-          </div>
+          </form>
           <button type="button" class="secret-btn secret-btn-sm" id="secretSignOutBtn" hidden>Sign out</button>
-        </form>
+        </div>
+
+        <div id="secretVaultContent" class="secret-vault-content" hidden>
+          <form id="secretMsgForm" class="secret-form">
+            <div class="secret-row">
+              <div class="secret-field">
+                <label for="secretNum">Monthsary #</label>
+                <input type="number" id="secretNum" min="1" max="120" required />
+              </div>
+              <div class="secret-field">
+                <label for="secretDate">Date</label>
+                <input type="text" id="secretDate" readonly />
+              </div>
+            </div>
+
+            <div class="secret-field">
+              <label for="secretLabel">Label</label>
+              <input type="text" id="secretLabel" placeholder="e.g. Fifth Monthsary" required />
+            </div>
+
+            <div class="secret-field">
+              <label for="secretLetter">Letter</label>
+              <textarea id="secretLetter" rows="6" placeholder="Write your letter here... (Line breaks will be preserved)" required></textarea>
+            </div>
+
+            <div class="secret-actions">
+              <button type="submit" class="secret-btn secret-btn-primary" id="secretSaveBtn">Save Letter</button>
+            </div>
+          </form>
+
+          <div id="secretToast" class="secret-toast" style="display:none;"></div>
+
+          <div class="secret-list-section">
+            <h3 class="secret-list-heading">Stored Letters (<span id="secretCount">0</span>)</h3>
+            <div id="secretLettersList" class="secret-letters-list"></div>
+          </div>
+        </div>
       </div>
     </div>
 

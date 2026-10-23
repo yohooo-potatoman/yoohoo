@@ -15,6 +15,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const database = getDatabase(app);
+let resolveAuthReady;
+const authReady = new Promise(resolve => {
+  resolveAuthReady = resolve;
+});
 
 function getUnlockTimestamp(date) {
   const match = String(date).match(/^([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})$/);
@@ -45,35 +49,55 @@ function getLatestUnlockedNumber() {
   return Math.min(Math.max(latest, 0), 120);
 }
 
-async function readMessages(maxNumber) {
-  const messages = [];
-  for (let start = 1; start <= maxNumber; start += 20) {
+async function readMessageEntries(maxNumber, includeLegacyArray = false) {
+  const entries = [];
+  const firstKey = includeLegacyArray ? 0 : 1;
+  for (let start = firstKey; start <= maxNumber; start += 20) {
     const end = Math.min(start + 19, maxNumber);
     const snapshots = await Promise.all(
-      Array.from({ length: end - start + 1 }, (_, index) =>
-        get(ref(database, `monthsaries/${start + index}`))),
+      Array.from({ length: end - start + 1 }, (_, index) => {
+        const key = start + index;
+        return get(ref(database, `monthsaries/${key}`)).then(snapshot => ({ key, snapshot }));
+      }),
     );
-    snapshots.forEach(snapshot => {
+    snapshots.forEach(({ key, snapshot }) => {
       const message = snapshot.val();
       if (message && typeof message === 'object' && Number.isInteger(message.num)) {
-        messages.push(message);
+        entries.push({ key: String(key), message });
       }
     });
   }
-  return messages.sort((a, b) => a.num - b.num);
+  return entries;
+}
+
+function preferCanonicalMessages(entries) {
+  const messages = new Map();
+  entries.forEach(({ key, message }) => {
+    const current = messages.get(message.num);
+    if (!current || key === String(message.num)) messages.set(message.num, message);
+  });
+  return Array.from(messages.values()).sort((a, b) => a.num - b.num);
 }
 
 window.firebaseVault = {
   getCurrentUser: () => auth.currentUser,
+  whenAuthReady: () => authReady,
   signIn: (email, password) => signInWithEmailAndPassword(auth, email, password),
   signOut: () => signOut(auth),
-  loadMessages: () => readMessages(auth.currentUser ? 120 : getLatestUnlockedNumber()),
+  async loadMessages() {
+    const isAdmin = Boolean(auth.currentUser);
+    const entries = await readMessageEntries(
+      isAdmin ? 120 : getLatestUnlockedNumber(),
+      isAdmin,
+    );
+    return preferCanonicalMessages(entries);
+  },
   async saveMessages(messages) {
     if (!auth.currentUser) {
       throw new Error('Sign in with your admin account before saving letters.');
     }
 
-    const existing = await readMessages(120);
+    const existing = await readMessageEntries(120, true);
     const prepared = messages.map(message => {
       if (!Number.isInteger(message.num) || message.num < 1 || message.num > 120) {
         throw new Error('Monthsary number must be between 1 and 120.');
@@ -90,8 +114,9 @@ window.firebaseVault = {
     await Promise.all([
       ...prepared.map(message => set(ref(database, `monthsaries/${message.num}`), message)),
       ...existing
-        .filter(message => !desiredNumbers.has(message.num))
-        .map(message => remove(ref(database, `monthsaries/${message.num}`))),
+        .filter(({ key, message }) =>
+          !desiredNumbers.has(message.num) || key !== String(message.num))
+        .map(({ key }) => remove(ref(database, `monthsaries/${key}`))),
     ]);
   },
 };
@@ -100,4 +125,5 @@ onAuthStateChanged(auth, user => {
   window.dispatchEvent(new CustomEvent('firebase-vault-auth', {
     detail: { email: user?.email || null },
   }));
+  resolveAuthReady();
 });

@@ -275,12 +275,19 @@ function revealDesktop() {
 /* ══════════════════════════════════════════════════════════
    WINDOW MANAGER
 ══════════════════════════════════════════════════════════ */
-let zBase = 100;
+let zBase = 4000;
 
 function focusWindow(win) {
   document.querySelectorAll('.win').forEach(w => w.classList.remove('focused'));
   win.classList.add('focused');
-  win.style.zIndex = ++zBase;
+  const highestOpenWindow = Array.from(document.querySelectorAll('.win.open'))
+    .filter(openWindow => openWindow !== win)
+    .reduce((highest, openWindow) => {
+      const current = Number.parseInt(getComputedStyle(openWindow).zIndex, 10);
+      return Number.isFinite(current) ? Math.max(highest, current) : highest;
+    }, zBase);
+  zBase = highestOpenWindow + 1;
+  win.style.zIndex = String(zBase);
 }
 
 function openWindow(winId, focus = true) {
@@ -294,7 +301,12 @@ function openWindow(winId, focus = true) {
   if (focus) focusWindow(win);
   updateNavActive(winId);
 
-  if (winId === 'memories' && !galleryInited) initGallery();
+  if (winId === 'memories') {
+    if (!galleryInited) initGallery();
+    if (window.innerWidth <= 700) {
+      requestAnimationFrame(() => win.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    }
+  }
 }
 
 function closeWindow(winId) {
@@ -497,6 +509,19 @@ function getManilaTodayMidnightUtc() {
   return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0));
 }
 
+function getMonthsaryMessageSignature(msg) {
+  return JSON.stringify([msg.num, msg.label, msg.date, msg.letter]);
+}
+
+function isNewMonthsaryMessage(msg) {
+  return localStorage.getItem(`monthsary-read-${msg.num}`) !== getMonthsaryMessageSignature(msg);
+}
+
+const ENVELOPES_PER_PAGE = 5;
+let _envelopePage = 0;
+let _arrivalAnimationDate = null;
+let _arrivalAnimationStartedAt = null;
+
 let _midnightTimer = null;
 function scheduleMonthsaryMidnightCheck() {
   if (_midnightTimer) clearTimeout(_midnightTimer);
@@ -526,6 +551,31 @@ function initMonthsary() {
     const d = parseMonthsaryDate(msg.date) || getUnlockDate(msg.num);
     return d && d.getTime() <= todayMidnight.getTime();
   });
+  const newestMessageNum = visibleMessages.length
+    ? visibleMessages[visibleMessages.length - 1].num
+    : null;
+  const today = getManilaNow();
+  const arrivalMessage = today.getDate() === 14
+    ? [...visibleMessages].reverse().find(msg => {
+      const unlockDate = parseMonthsaryDate(msg.date) || getUnlockDate(msg.num);
+      return unlockDate?.getTime() === todayMidnight.getTime();
+    })
+    : null;
+  if (arrivalMessage) {
+    const arrivalIndex = visibleMessages.indexOf(arrivalMessage);
+    _envelopePage = Math.floor(arrivalIndex / ENVELOPES_PER_PAGE);
+  }
+  const todayKey = todayMidnight.getTime();
+  if (arrivalMessage && _arrivalAnimationDate !== todayKey) {
+    _arrivalAnimationDate = todayKey;
+    _arrivalAnimationStartedAt = Date.now();
+  }
+  const arrivalElapsed = _arrivalAnimationDate === todayKey
+    ? Date.now() - _arrivalAnimationStartedAt
+    : Infinity;
+  const animateArrival = Boolean(arrivalMessage) && arrivalElapsed < 2500;
+  const pageCount = Math.max(1, Math.ceil(visibleMessages.length / ENVELOPES_PER_PAGE));
+  _envelopePage = Math.min(_envelopePage, pageCount - 1);
 
   // Update standalone counter pill — counts visible unlocked only
   if (counter) {
@@ -555,20 +605,39 @@ function initMonthsary() {
     { left: '72%', top: '52%', dur: '7.2s', delay: '-3.5s' },
   ];
 
-  visibleMessages.forEach((msg, displayIdx) => {
-    const pos = positions[displayIdx % positions.length];
+  const pageStart = _envelopePage * ENVELOPES_PER_PAGE;
+  visibleMessages.slice(pageStart, pageStart + ENVELOPES_PER_PAGE).forEach((msg, displayIdx) => {
+    const pos = positions[displayIdx];
     const env = document.createElement('div');
-    env.className = 'ms-envelope';
+    const isNew = msg.num === newestMessageNum && isNewMonthsaryMessage(msg);
+    env.className = `ms-envelope${isNew ? ' has-ribbon' : ''}`;
+    env.dataset.monthsaryNum = String(msg.num);
+    const isArriving = animateArrival && msg.num === arrivalMessage.num;
+    if (isArriving) {
+      env.classList.add('ms-arriving');
+      env.style.setProperty('--arrival-delay', `calc(${displayIdx * 140}ms - ${arrivalElapsed}ms)`);
+    }
     env.setAttribute('role', 'button');
     env.setAttribute('tabindex', '0');
-    env.setAttribute('aria-label', `Open ${msg.label}`);
+    env.setAttribute('aria-label', `${isNew ? 'New message: ' : ''}Open ${msg.label}`);
     env.style.left = pos.left;
     env.style.top  = pos.top;
-    env.style.animationDuration = pos.dur;
-    env.style.animationDelay    = pos.delay;
+    env.style.setProperty('--float-duration', pos.dur);
+    env.style.setProperty('--float-delay', pos.delay);
 
     env.innerHTML = `
       <div class="ms-env-card">
+        ${isNew ? `
+          <span class="ms-env-ribbon" aria-hidden="true">
+            <span class="ms-ribbon-bow">
+              <span class="ms-bow-loop ms-bow-loop-left"></span>
+              <span class="ms-bow-loop ms-bow-loop-right"></span>
+              <span class="ms-bow-tail ms-bow-tail-left"></span>
+              <span class="ms-bow-tail ms-bow-tail-right"></span>
+              <span class="ms-bow-knot"></span>
+            </span>
+          </span>
+        ` : ''}
         <span class="ms-env-seal">${MS_SEALS[(msg.num - 1) % MS_SEALS.length]}</span>
       </div>
       <span class="ms-env-label">${ordinalSuffix(msg.num)}</span>
@@ -580,6 +649,44 @@ function initMonthsary() {
     layer.appendChild(env);
   });
 
+  if (pageCount > 1) {
+    const controls = document.createElement('nav');
+    controls.className = 'ms-page-controls';
+    controls.setAttribute('aria-label', 'Monthsary message pages');
+
+    const previous = document.createElement('button');
+    previous.type = 'button';
+    previous.className = 'ms-page-button';
+    previous.textContent = '‹';
+    previous.setAttribute('aria-label', 'Previous monthsary messages');
+    previous.disabled = _envelopePage === 0;
+    previous.addEventListener('click', () => {
+      if (_envelopePage === 0) return;
+      _envelopePage--;
+      initMonthsary();
+    });
+
+    const pageLabel = document.createElement('span');
+    pageLabel.className = 'ms-page-label';
+    pageLabel.textContent = `${_envelopePage + 1} / ${pageCount}`;
+    pageLabel.setAttribute('aria-live', 'polite');
+
+    const next = document.createElement('button');
+    next.type = 'button';
+    next.className = 'ms-page-button';
+    next.textContent = '›';
+    next.setAttribute('aria-label', 'Next monthsary messages');
+    next.disabled = _envelopePage >= pageCount - 1;
+    next.addEventListener('click', () => {
+      if (_envelopePage >= pageCount - 1) return;
+      _envelopePage++;
+      initMonthsary();
+    });
+
+    controls.append(previous, pageLabel, next);
+    layer.appendChild(controls);
+  }
+
   scheduleMonthsaryMidnightCheck();
 }
 
@@ -590,6 +697,13 @@ function openMonthsaryLetter(numOrIdx) {
     msg = all[numOrIdx];
   }
   if (!msg) return;
+
+  localStorage.setItem(`monthsary-read-${msg.num}`, getMonthsaryMessageSignature(msg));
+  const envelope = document.querySelector(`.ms-envelope[data-monthsary-num="${msg.num}"]`);
+  if (envelope) {
+    envelope.querySelector('.ms-env-ribbon')?.remove();
+    envelope.setAttribute('aria-label', `Open ${msg.label}`);
+  }
 
   const modal  = document.getElementById('monthsaryModal');
   const ordEl  = document.getElementById('msOrdinal');
@@ -604,7 +718,6 @@ function openMonthsaryLetter(numOrIdx) {
 
   // Start typing the letter
   startTyping(msg.letter, 'msTyped', 'msFooter');
-  spawnBurst(modal);
 }
 
 function pulseEnvelopes() {
@@ -1115,29 +1228,18 @@ function triggerGenericMonthsaryLetter(num, dateStr) {
     "",
     "Always your annoying man"
   ].join('\n');
-
   startTyping(fallbackLetter, 'msTyped', 'msFooter');
-  spawnBurst(modal);
+  startTyping(fallbackLetter, 'msTyped', 'msFooter');
 }
 
 // ── 3. Meeting Celebration Event ──────────────────────────
 function celebrateMeeting(monthsaryNum, dateStr, autoTriggerModal = false) {
-  const heart = document.getElementById('mwHeart');
-
-  // Confetti / Fireworks bursts
-  for (let i = 0; i < 5; i++) {
-    setTimeout(() => {
-      const cx = (window.innerWidth * 0.2) + Math.random() * (window.innerWidth * 0.6);
-      const cy = (window.innerHeight * 0.2) + Math.random() * (window.innerHeight * 0.5);
-      if (typeof createFireworkBurst === 'function') {
-        createFireworkBurst(cx, cy);
-      }
-    }, i * 220);
-  }
-
-  // Heart particle burst
-  if (heart && typeof spawnBurst === 'function') {
-    spawnBurst(heart);
+  const container = document.getElementById('monthsaryWalk');
+  if (container) {
+    container.classList.remove('monthsary-celebrating');
+    void container.offsetWidth;
+    container.classList.add('monthsary-celebrating');
+    setTimeout(() => container.classList.remove('monthsary-celebrating'), 4500);
   }
 
   // Auto-trigger monthsary letter modal
@@ -1150,7 +1252,7 @@ function celebrateMeeting(monthsaryNum, dateStr, autoTriggerModal = false) {
       } else {
         triggerGenericMonthsaryLetter(monthsaryNum, dateStr);
       }
-    }, 1500);
+    }, 4500);
   }
 }
 
@@ -1213,27 +1315,45 @@ function initMonthsaryWalk() {
     her.style.left  = 'auto';
   }
 
-  // Attach 5-click secret trigger
+  // Attach the hold-to-open gesture and tap-to-celebrate interaction.
   setupSecretWalkTrigger(container);
 }
 
-// ── 5. Secret 5-Click Vault Trigger ───────────────────────
-let _walkClickCount = 0;
-let _walkClickTimer = null;
+// ── 5. Hold-to-open Secret Vault Trigger ──────────────────
+const WALK_VAULT_HOLD_MS = 5000;
+let _walkHoldTimer = null;
+let _walkHoldTriggered = false;
+let _walkHoldResetTimer = null;
 
 function setupSecretWalkTrigger(container) {
-  container.onclick = (e) => {
-    _walkClickCount++;
-    clearTimeout(_walkClickTimer);
-    _walkClickTimer = setTimeout(() => { _walkClickCount = 0; }, 2200);
-
-    // If clicked 5 times quickly, open secret creator!
-    if (_walkClickCount >= 5) {
-      _walkClickCount = 0;
+  container.onpointerdown = event => {
+    if (event.button !== 0 || !event.isPrimary) return;
+    clearTimeout(_walkHoldTimer);
+    clearTimeout(_walkHoldResetTimer);
+    _walkHoldTriggered = false;
+    _walkHoldTimer = setTimeout(() => {
+      _walkHoldTimer = null;
+      _walkHoldTriggered = true;
       openSecretAdminModal();
+      _walkHoldResetTimer = setTimeout(() => {
+        _walkHoldTriggered = false;
+      }, 1000);
+    }, WALK_VAULT_HOLD_MS);
+  };
+
+  const cancelHold = () => {
+    clearTimeout(_walkHoldTimer);
+    _walkHoldTimer = null;
+  };
+  container.onpointerup = cancelHold;
+  container.onpointercancel = cancelHold;
+  container.onlostpointercapture = cancelHold;
+
+  container.onclick = () => {
+    if (_walkHoldTriggered) {
+      _walkHoldTriggered = false;
       return;
     }
-
     // Normal click interaction
     const cycle = getMonthsaryCycleInfo();
     if (cycle.daysUntil === 0) {
@@ -1262,6 +1382,11 @@ function openSecretAdminModal() {
   const modal = document.getElementById('secretAdminModal');
   if (!modal) return;
 
+  modal.style.display = 'flex';
+  initializeSecretVaultView();
+}
+
+function prepareNewSecretMessage() {
   const numInput   = document.getElementById('secretNum');
   const labelInput = document.getElementById('secretLabel');
   const letterArea = document.getElementById('secretLetter');
@@ -1278,7 +1403,51 @@ function openSecretAdminModal() {
   letterArea.value = '';
 
   renderSecretLettersList();
-  modal.style.display = 'flex';
+}
+
+function setSecretAuthView(email, loading = false) {
+  const title = document.getElementById('secretTitle');
+  const status = document.getElementById('secretAuthStatus');
+  const authForm = document.getElementById('secretAuthForm');
+  const signOutButton = document.getElementById('secretSignOutBtn');
+  const vaultContent = document.getElementById('secretVaultContent');
+  const signedIn = Boolean(email);
+
+  if (title) title.textContent = signedIn ? 'Add Message' : 'Secret Vault Sign In';
+  if (status) {
+    status.textContent = loading
+      ? 'Loading your private letters...'
+      : signedIn
+        ? `Signed in as ${email}.`
+        : 'Sign in with your Firebase admin account to open the vault.';
+  }
+  if (authForm) authForm.hidden = signedIn || loading;
+  if (signOutButton) signOutButton.hidden = !signedIn;
+  if (vaultContent) vaultContent.hidden = !signedIn || loading;
+}
+
+async function initializeSecretVaultView() {
+  try {
+    const vault = getFirebaseVault();
+    await vault.whenAuthReady();
+    const user = vault.getCurrentUser();
+    const email = user?.email || null;
+
+    if (email) {
+      setSecretAuthView(email, true);
+      if (await fetchFromCloud()) {
+        setSecretAuthView(email);
+        prepareNewSecretMessage();
+      }
+    } else {
+      setSecretAuthView(null);
+    }
+  } catch (error) {
+    console.error('Firebase vault initialization error:', error);
+    setSecretAuthView(null);
+    const status = document.getElementById('secretAuthStatus');
+    if (status) status.textContent = error.message || 'Firebase could not be initialized.';
+  }
 }
 
 function closeSecretAdminModal() {
@@ -1367,40 +1536,6 @@ async function deleteSecretLetter(num) {
   showSecretToast(`Deleted ${ordinalSuffix(num)} Monthsary.`);
 }
 
-function copySecretMessageGitCode() {
-  const num = parseInt(document.getElementById('secretNum').value, 10);
-  const label = document.getElementById('secretLabel').value.trim();
-  const letter = document.getElementById('secretLetter').value.trim();
-  const date = document.getElementById('secretDate').value;
-
-  if (!num || !label || !letter) {
-    showSecretToast('Please enter letter content first!', true);
-    return;
-  }
-
-  const lines = letter.split('\n').map(l => JSON.stringify(l)).join(',\n      ');
-  const code = [
-    '  {',
-    `    num: ${num},`,
-    `    label: '${label}',`,
-    `    date: '${date}',`,
-    '    letter: [',
-    `      ${lines}`,
-    "    ].join('\\n')",
-    '  },'
-  ].join('\n');
-
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(code).then(() => {
-      showSecretToast('Copied code! Ready to paste into script.js');
-    }).catch(() => {
-      prompt('Copy this code for script.js:', code);
-    });
-  } else {
-    prompt('Copy this code for script.js:', code);
-  }
-}
-
 function getFirebaseVault() {
   const vault = window.firebaseVault;
   if (
@@ -1410,6 +1545,7 @@ function getFirebaseVault() {
     || typeof vault.loadMessages !== 'function'
     || typeof vault.saveMessages !== 'function'
     || typeof vault.getCurrentUser !== 'function'
+    || typeof vault.whenAuthReady !== 'function'
   ) {
     throw new Error('Firebase setup is not loaded on this page. Open the latest deployed site or rebuild and serve the dist folder.');
   }
@@ -1436,8 +1572,11 @@ async function fetchFromCloud() {
     if (user) {
       const storedMessages = JSON.parse(localStorage.getItem('CUSTOM_MONTHSARY_MESSAGES') || '[]');
       const legacyMessages = Array.isArray(storedMessages) ? storedMessages : [];
-      if (messages.length === 0 && legacyMessages.length > 0) {
-        await vault.saveMessages(legacyMessages);
+      const cloudNumbers = new Set(messages.map(message => message.num));
+      const missingLegacyMessages = legacyMessages.filter(message => !cloudNumbers.has(message.num));
+      if (missingLegacyMessages.length > 0) {
+        const merged = [...messages, ...missingLegacyMessages].sort((a, b) => a.num - b.num);
+        await vault.saveMessages(merged);
         messages = await vault.loadMessages();
       }
       localStorage.removeItem('CUSTOM_MONTHSARY_MESSAGES');
@@ -1446,10 +1585,12 @@ async function fetchFromCloud() {
     initMonthsary();
     if (typeof initMonthsaryWalk === 'function') initMonthsaryWalk();
     renderSecretLettersList();
+    return true;
   } catch (error) {
     console.error('Cloud pull error:', error);
     const status = document.getElementById('secretAuthStatus');
     if (status) status.textContent = `Firebase connection failed: ${error.message}`;
+    return false;
   }
 }
 
@@ -1458,7 +1599,6 @@ document.getElementById('secretClose')?.addEventListener('click', closeSecretAdm
 document.getElementById('secretNum')?.addEventListener('input', e => {
   updateSecretDateDisplay(e.target.value);
 });
-document.getElementById('secretCopyCodeBtn')?.addEventListener('click', copySecretMessageGitCode);
 
 document.getElementById('secretAuthForm')?.addEventListener('submit', async e => {
   e.preventDefault();
@@ -1467,12 +1607,14 @@ document.getElementById('secretAuthForm')?.addEventListener('submit', async e =>
   const button = document.getElementById('secretSignInBtn');
   button.disabled = true;
   try {
+    setSecretAuthView(null, true);
     await getFirebaseVault().signIn(email, password);
     document.getElementById('secretAuthPassword').value = '';
-    showSecretToast('Signed in. You can now save letters across devices.');
   } catch (error) {
     console.error('Firebase sign-in error:', error);
-    showSecretToast(error.message || 'Could not sign in.', true);
+    setSecretAuthView(null);
+    const status = document.getElementById('secretAuthStatus');
+    if (status) status.textContent = `Sign-in failed: ${error.message || 'Check your email and password.'}`;
   } finally {
     button.disabled = false;
   }
@@ -1490,15 +1632,17 @@ document.getElementById('secretSignOutBtn')?.addEventListener('click', async () 
 
 window.addEventListener('firebase-vault-auth', event => {
   const { email } = event.detail;
-  const status = document.getElementById('secretAuthStatus');
-  const fields = document.getElementById('secretAuthFields');
-  const signOutButton = document.getElementById('secretSignOutBtn');
-  if (status) status.textContent = email
-    ? `Signed in as ${email}. Letters you save will sync across devices.`
-    : 'Sign in with your Firebase admin account to save letters across devices.';
-  if (fields) fields.hidden = Boolean(email);
-  if (signOutButton) signOutButton.hidden = !email;
-  fetchFromCloud();
+  const modal = document.getElementById('secretAdminModal');
+  if (modal?.style.display === 'flex') setSecretAuthView(email, Boolean(email));
+  fetchFromCloud().then(loaded => {
+    if (modal?.style.display !== 'flex') return;
+    if (email && loaded) {
+      setSecretAuthView(email);
+      prepareNewSecretMessage();
+    } else if (!email) {
+      setSecretAuthView(null);
+    }
+  });
 });
 
 document.getElementById('secretMsgForm')?.addEventListener('submit', async e => {
