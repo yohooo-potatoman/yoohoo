@@ -1,6 +1,7 @@
 const fs   = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
+const esbuild = require('esbuild');
 
 const ROOT = __dirname;
 const DIST = path.join(ROOT, 'dist');
@@ -10,7 +11,6 @@ const JS_FILE_NAME = `script.${BUILD_VERSION}.js`;
 const FIREBASE_FILE_NAME = `firebase.${BUILD_VERSION}.js`;
 const cleanCssCli = path.join(ROOT, 'node_modules', 'clean-css-cli', 'bin', 'cleancss');
 const javascriptObfuscatorCli = path.join(ROOT, 'node_modules', 'javascript-obfuscator', 'bin', 'javascript-obfuscator');
-const esbuildCli = path.join(ROOT, 'node_modules', 'esbuild', 'bin', 'esbuild');
 
 // Clean dist
 fs.rmSync(DIST, { recursive: true, force: true });
@@ -55,14 +55,13 @@ execFileSync(process.execPath, [
 console.log('[build] JS obfuscated');
 
 // ── 4. Bundle Firebase SDK ─────────────────────────────────
-execFileSync(process.execPath, [
-  esbuildCli,
-  path.join(ROOT, 'firebase-vault.js'),
-  '--bundle',
-  '--platform=browser',
-  '--format=iife',
-  `--outfile=${path.join(DIST, FIREBASE_FILE_NAME)}`,
-], { stdio: 'inherit', cwd: ROOT });
+esbuild.buildSync({
+  entryPoints: [path.join(ROOT, 'firebase-vault.js')],
+  bundle: true,
+  platform: 'browser',
+  format: 'iife',
+  outfile: path.join(DIST, FIREBASE_FILE_NAME),
+});
 console.log('[build] Firebase SDK bundled');
 
 // ── 5. Minify HTML and inject versioned asset filenames ────
