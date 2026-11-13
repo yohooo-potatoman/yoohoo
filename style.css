@@ -277,58 +277,24 @@ body {
 
 #monthsaryLayer {
   position: fixed;
-  inset: 0;
+  top: max(64px, 8dvh);
+  left: 50%;
+  width: min(920px, calc(100vw - 32px));
+  height: min(72vh, 650px);
+  max-height: calc(100dvh - 128px);
+  padding: 18px;
+  transform: translateX(-50%);
   z-index: 600;
-  pointer-events: none;
-}
-
-.ms-envelope {
+  overflow: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  overflow-x: hidden;
+  scrollbar-width: none;
   pointer-events: auto;
 }
 
-.ms-page-controls {
-  position: fixed;
-  top: calc(12px + env(safe-area-inset-top));
-  right: 16px;
-  z-index: 901;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 7px;
-  border: 1px solid rgba(150, 100, 120, 0.22);
-  border-radius: 20px;
-  background: rgba(245, 237, 224, 0.94);
-  box-shadow: 0 2px 10px rgba(80, 40, 60, 0.14);
-  pointer-events: auto;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-}
-
-.ms-page-button {
-  width: 28px;
-  height: 28px;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--text-s);
-  font: 20px/1 var(--serif);
-  cursor: pointer;
-}
-
-.ms-page-button:hover:not(:disabled) {
-  background: rgba(150, 100, 120, 0.14);
-}
-
-.ms-page-button:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
-
-.ms-page-label {
-  min-width: 36px;
-  text-align: center;
-  color: var(--text-s);
-  font: 10px var(--mono);
+#monthsaryLayer::-webkit-scrollbar {
+  display: none;
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -1572,12 +1538,11 @@ body {
   }
 
   #monthsaryLayer {
-    position: fixed;
-    inset: 0;
-    width: 100vw;
-    height: 100vh;
-    max-height: 100dvh;
-    pointer-events: none;
+    top: max(68px, calc(8dvh + env(safe-area-inset-top)));
+    width: calc(100vw - 24px);
+    height: min(70vh, 600px);
+    max-height: calc(100dvh - 110px);
+    padding: 12px;
   }
 
   .ms-envelope {
@@ -1626,14 +1591,14 @@ body {
   .win-body { padding: 20px 18px; }
 
   .ms-env-card {
-    width: 52px;
-    height: 38px;
+    width: 44px;
+    height: 32px;
   }
 
   .ms-env-card::before {
-    border-left-width: 26px;
-    border-right-width: 26px;
-    border-top-width: 18px;
+    border-left-width: 22px;
+    border-right-width: 22px;
+    border-top-width: 16px;
   }
 
   .ms-env-seal {
@@ -1706,8 +1671,8 @@ body {
 
 /* The envelope card itself */
 .ms-env-card {
-  width: 64px;
-  height: 46px;
+  width: 52px;
+  height: 38px;
   background: var(--parchment, #f5ede0);
   border-radius: 4px;
   box-shadow: 0 3px 12px rgba(80,40,60,0.2), inset 0 0 0 1px rgba(150,100,120,0.15);
@@ -1832,10 +1797,23 @@ body {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0;
-  border-left: 32px solid transparent;
-  border-right: 32px solid transparent;
-  border-top: 22px solid rgba(140, 100, 120, 0.18);
+  border-left: 26px solid transparent;
+  border-right: 26px solid transparent;
+  border-top: 19px solid rgba(140, 100, 120, 0.18);
   border-radius: 4px 4px 0 0;
+}
+
+@media (max-width: 400px) {
+  .ms-env-card {
+    width: 44px;
+    height: 32px;
+  }
+
+  .ms-env-card::before {
+    border-left-width: 22px;
+    border-right-width: 22px;
+    border-top-width: 16px;
+  }
 }
 
 /* Heart seal */

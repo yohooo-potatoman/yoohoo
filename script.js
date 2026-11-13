@@ -517,8 +517,6 @@ function isNewMonthsaryMessage(msg) {
   return localStorage.getItem(`monthsary-read-${msg.num}`) !== getMonthsaryMessageSignature(msg);
 }
 
-const ENVELOPES_PER_PAGE = 5;
-let _envelopePage = 0;
 let _arrivalAnimationDate = null;
 let _arrivalAnimationStartedAt = null;
 
@@ -541,7 +539,7 @@ function initMonthsary() {
   const counter = document.getElementById('msCounter');
   if (!layer) return;
 
-  // Clear existing envelopes to avoid duplicates on resize
+  const savedScrollTop = layer.scrollTop;
   layer.innerHTML = '';
 
   // ── DATE GATE: only show envelopes whose scheduled 14th <= today Manila midnight ──
@@ -561,10 +559,6 @@ function initMonthsary() {
       return unlockDate?.getTime() === todayMidnight.getTime();
     })
     : null;
-  if (arrivalMessage) {
-    const arrivalIndex = visibleMessages.indexOf(arrivalMessage);
-    _envelopePage = Math.floor(arrivalIndex / ENVELOPES_PER_PAGE);
-  }
   const todayKey = todayMidnight.getTime();
   if (arrivalMessage && _arrivalAnimationDate !== todayKey) {
     _arrivalAnimationDate = todayKey;
@@ -574,8 +568,6 @@ function initMonthsary() {
     ? Date.now() - _arrivalAnimationStartedAt
     : Infinity;
   const animateArrival = Boolean(arrivalMessage) && arrivalElapsed < 2500;
-  const pageCount = Math.max(1, Math.ceil(visibleMessages.length / ENVELOPES_PER_PAGE));
-  _envelopePage = Math.min(_envelopePage, pageCount - 1);
 
   // Update standalone counter pill — counts visible unlocked only
   if (counter) {
@@ -589,25 +581,61 @@ function initMonthsary() {
     }
   }
 
-  // Safe percentage coordinates (tested for mobile 320px to wide desktop 4K)
+  // Scatter envelopes within each ten-message scroll section.
   const isMobile = window.innerWidth <= 700;
-  const positions = isMobile ? [
-    { left: '10%', top: '16%', dur: '6s',   delay: '0s' },
-    { left: '64%', top: '14%', dur: '6.8s', delay: '-2s' },
-    { left: '38%', top: '34%', dur: '6.2s', delay: '-3.5s' },
-    { left: '12%', top: '48%', dur: '7.2s', delay: '-1s' },
-    { left: '62%', top: '50%', dur: '6.5s', delay: '-4s' },
+  const placements = isMobile ? [
+    { left: 12, top: 10 },
+    { left: 68, top: 8 },
+    { left: 40, top: 23 },
+    { left: 79, top: 31 },
+    { left: 15, top: 39 },
+    { left: 57, top: 47 },
+    { left: 8,  top: 61 },
+    { left: 73, top: 59 },
+    { left: 35, top: 76 },
+    { left: 80, top: 84 },
   ] : [
-    { left: '8%',  top: '18%', dur: '7s',   delay: '0s' },
-    { left: '74%', top: '14%', dur: '7.5s', delay: '-2.5s' },
-    { left: '42%', top: '36%', dur: '6.8s', delay: '-4s' },
-    { left: '14%', top: '54%', dur: '8s',   delay: '-1.5s' },
-    { left: '72%', top: '52%', dur: '7.2s', delay: '-3.5s' },
+    { left: 10, top: 12 },
+    { left: 72, top: 9 },
+    { left: 39, top: 26 },
+    { left: 84, top: 34 },
+    { left: 17, top: 41 },
+    { left: 61, top: 48 },
+    { left: 7,  top: 63 },
+    { left: 77, top: 61 },
+    { left: 34, top: 77 },
+    { left: 84, top: 84 },
+  ];
+  const motions = isMobile ? [
+    { dur: '6s',   delay: '0s' },
+    { dur: '6.8s', delay: '-2s' },
+    { dur: '6.2s', delay: '-3.5s' },
+    { dur: '7.2s', delay: '-1s' },
+    { dur: '6.5s', delay: '-4s' },
+    { dur: '6s',   delay: '-1.5s' },
+    { dur: '6.8s', delay: '-3s' },
+    { dur: '6.2s', delay: '-4.5s' },
+    { dur: '7.2s', delay: '-2s' },
+    { dur: '6.5s', delay: '-5s' },
+  ] : [
+    { dur: '7s',   delay: '0s' },
+    { dur: '7.5s', delay: '-2.5s' },
+    { dur: '6.8s', delay: '-4s' },
+    { dur: '8s',   delay: '-1.5s' },
+    { dur: '7.2s', delay: '-3.5s' },
+    { dur: '7s',   delay: '-1s' },
+    { dur: '7.5s', delay: '-3.5s' },
+    { dur: '6.8s', delay: '-5s' },
+    { dur: '8s',   delay: '-2.5s' },
+    { dur: '7.2s', delay: '-4.5s' },
   ];
 
-  const pageStart = _envelopePage * ENVELOPES_PER_PAGE;
-  visibleMessages.slice(pageStart, pageStart + ENVELOPES_PER_PAGE).forEach((msg, displayIdx) => {
-    const pos = positions[displayIdx];
+  visibleMessages.forEach((msg, displayIdx) => {
+    const section = Math.floor(displayIdx / placements.length);
+    const sectionIndex = displayIdx % placements.length;
+    const placementIndex = (sectionIndex * 7 + section * 3) % placements.length;
+    const placement = placements[placementIndex];
+    const motion = motions[sectionIndex];
     const env = document.createElement('div');
     const isNew = msg.num === newestMessageNum && isNewMonthsaryMessage(msg);
     env.className = `ms-envelope${isNew ? ' has-ribbon' : ''}`;
@@ -615,15 +643,16 @@ function initMonthsary() {
     const isArriving = animateArrival && msg.num === arrivalMessage.num;
     if (isArriving) {
       env.classList.add('ms-arriving');
-      env.style.setProperty('--arrival-delay', `calc(${displayIdx * 140}ms - ${arrivalElapsed}ms)`);
+      const arrivalDelay = Math.min(displayIdx * 140, 700);
+      env.style.setProperty('--arrival-delay', `calc(${arrivalDelay}ms - ${arrivalElapsed}ms)`);
     }
     env.setAttribute('role', 'button');
     env.setAttribute('tabindex', '0');
     env.setAttribute('aria-label', `${isNew ? 'New message: ' : ''}Open ${msg.label}`);
-    env.style.left = pos.left;
-    env.style.top  = pos.top;
-    env.style.setProperty('--float-duration', pos.dur);
-    env.style.setProperty('--float-delay', pos.delay);
+    env.style.left = `${placement.left}%`;
+    env.style.top = `${section * layer.clientHeight + (placement.top / 100) * layer.clientHeight}px`;
+    env.style.setProperty('--float-duration', motion.dur);
+    env.style.setProperty('--float-delay', motion.delay);
 
     env.innerHTML = `
       <div class="ms-env-card">
@@ -647,45 +676,10 @@ function initMonthsary() {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openMonthsaryLetter(msg.num); }
     });
     layer.appendChild(env);
+    if (isArriving) env.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
   });
 
-  if (pageCount > 1) {
-    const controls = document.createElement('nav');
-    controls.className = 'ms-page-controls';
-    controls.setAttribute('aria-label', 'Monthsary message pages');
-
-    const previous = document.createElement('button');
-    previous.type = 'button';
-    previous.className = 'ms-page-button';
-    previous.textContent = '‹';
-    previous.setAttribute('aria-label', 'Previous monthsary messages');
-    previous.disabled = _envelopePage === 0;
-    previous.addEventListener('click', () => {
-      if (_envelopePage === 0) return;
-      _envelopePage--;
-      initMonthsary();
-    });
-
-    const pageLabel = document.createElement('span');
-    pageLabel.className = 'ms-page-label';
-    pageLabel.textContent = `${_envelopePage + 1} / ${pageCount}`;
-    pageLabel.setAttribute('aria-live', 'polite');
-
-    const next = document.createElement('button');
-    next.type = 'button';
-    next.className = 'ms-page-button';
-    next.textContent = '›';
-    next.setAttribute('aria-label', 'Next monthsary messages');
-    next.disabled = _envelopePage >= pageCount - 1;
-    next.addEventListener('click', () => {
-      if (_envelopePage >= pageCount - 1) return;
-      _envelopePage++;
-      initMonthsary();
-    });
-
-    controls.append(previous, pageLabel, next);
-    layer.appendChild(controls);
-  }
+  if (!animateArrival) layer.scrollTop = savedScrollTop;
 
   scheduleMonthsaryMidnightCheck();
 }
